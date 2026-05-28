@@ -1,0 +1,37 @@
+# --- Secrets and local environment (never commit) ---
+.env
+.env.*
+!.env.example
+
+# --- Dependencies ---
+node_modules/
+
+# --- Playwright / test output ---
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+.last-run.json
+.test-artifacts/
+
+# --- Local tooling / MCP snapshots ---
+.playwright-mcp/
+
+# --- Logs ---
+*.log
+npm-debug.log*
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- IDE / editor (optional local settings) ---
+.idea/
+*.swp
+*.swo
+
+# --- Coverage (if added later) ---
+coverage/
+
+# --- Cursor local state (if present under this tree) ---
+.cursor/
