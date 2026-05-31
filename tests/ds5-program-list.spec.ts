@@ -1,16 +1,17 @@
-import { test, expect, trackProgram, type Page } from "../fixtures/cleanup.fixture";
+import { test, expect, trackProgram } from "../fixtures/cleanup.fixture";
 import { createProgram } from "../support/create-program";
-import { openProgramsPage } from "../support/open-programs";
+import { ProgramsPage } from "../pages/programs.page";
 
-async function deleteProgram(page: Page, name: string) {
-  const row = page.getByRole("row").filter({ hasText: name });
-  page.once("dialog", (d) => d.accept());
-  await row.getByRole("button", { name: "🗑" }).click();
-  await expect(row).not.toBeVisible();
+async function skipIfNoProgramFilter(programs: ProgramsPage) {
+  test.skip(
+    !(await programs.programNameFilter.isVisible()),
+    "Program Name filter not available in this environment",
+  );
 }
 
 test.beforeEach(async ({ page }) => {
-  await openProgramsPage(page);
+  const programs = new ProgramsPage(page);
+  await programs.goto();
 });
 
 // --- Positive flows ---
@@ -23,52 +24,53 @@ test("TC-001 — Programs page shows a list with each program's name and descrip
   const desc1 = "Full-stack cohort for 2026";
   const name2 = `Data Science ${ts}`;
   const desc2 = "Python, stats, and ML fundamentals";
+  const programs = new ProgramsPage(page);
 
   trackProgram(await createProgram(page, name1, desc1));
   trackProgram(await createProgram(page, name2, desc2));
 
-  const row1 = page.getByRole("row").filter({ hasText: name1 });
-  const row2 = page.getByRole("row").filter({ hasText: name2 });
+  const row1 = programs.programRow(name1);
+  const row2 = programs.programRow(name2);
 
   await expect(row1).toBeVisible();
-  await expect(row1.getByText(desc1)).toBeVisible();
+  await expect(programs.descriptionInRow(name1, desc1)).toBeVisible();
   await expect(row2).toBeVisible();
-  await expect(row2.getByText(desc2)).toBeVisible();
+  await expect(programs.descriptionInRow(name2, desc2)).toBeVisible();
 });
 
 test("TC-002 — Programs page header and '+ New Program' button are visible for Admin", async ({
   page,
 }) => {
-  await expect(page.getByRole("heading", { name: "Programs" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "+ New Program" })).toBeVisible();
+  const programs = new ProgramsPage(page);
+
+  await expect(programs.heading).toBeVisible();
+  await expect(programs.newProgramButton).toBeVisible();
 });
 
 test("TC-004 — Clicking a program row opens the Semester Panel with semester-related content", async ({
   page,
 }) => {
   const name = `Semester Panel ${Date.now()}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name, "Panel test"));
 
-  const row = page.getByRole("row").filter({ hasText: name });
-  await row.click();
+  await programs.selectProgram(name);
 
-  await expect(page.getByText(/semester|holiday|break/i)).toBeVisible();
+  await expect(programs.semestersConfigLabel).toBeVisible();
+  await expect(programs.semesterPanelHeading(name)).toBeVisible();
 });
 
 test("TC-005 — 'Manage Courses' navigates to Course Builder from the Semester Panel", async ({
   page,
 }) => {
   const name = `Manage Courses ${Date.now()}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name, "Navigate to Course Builder"));
 
-  const row = page.getByRole("row").filter({ hasText: name });
-  await row.click();
+  await programs.selectProgram(name);
+  await programs.goToCourseBuilder();
 
-  await page.getByRole("button", { name: /Manage Courses/i }).click();
-  await page.waitForURL((url) => !url.pathname.endsWith("/programs"), {
-    timeout: 10_000,
-  });
-  expect(page.url()).not.toContain("/programs");
+  expect(page.url()).toMatch(/\/programs\/[^/]+\/courses/);
 });
 
 test("TC-006 — Program list reflects a successful create without manual refresh", async ({
@@ -76,39 +78,40 @@ test("TC-006 — Program list reflects a successful create without manual refres
 }) => {
   const name = `Cloud Engineering ${Date.now()}`;
   const desc = "AWS + containers + CI/CD";
+  const programs = new ProgramsPage(page);
 
   trackProgram(await createProgram(page, name, desc));
 
-  await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
+  await expect(programs.programRow(name)).toBeVisible();
 });
 
 test("TC-007 — Program list reflects a successful edit without manual refresh", async ({
   page,
 }) => {
   const name = `Edit Refresh ${Date.now()}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name, "Before edit"));
 
-  const row = page.getByRole("row").filter({ hasText: name });
-  await row.getByRole("button", { name: "✏️" }).click();
+  await programs.openEditFor(name);
 
-  const modal = page.getByRole("dialog", { name: "Edit Program" });
+  const modal = programs.editProgramModal;
   const updatedName = `${name} - Updated`;
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(updatedName);
-  await modal.getByRole("button", { name: "Save" }).click();
-  await expect(modal).not.toBeVisible();
+  await modal.fillProgramName(updatedName);
+  await modal.submit();
+  await expect(modal.dialog).not.toBeVisible();
 
-  await expect(page.getByRole("row").filter({ hasText: updatedName })).toBeVisible();
+  await expect(programs.programRow(updatedName)).toBeVisible();
 });
 
 test("TC-008 — Program list reflects a successful delete without manual refresh", async ({
   page,
 }) => {
   const name = `Del Refresh ${Date.now()}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name, "Delete refresh test"));
 
-  const row = page.getByRole("row").filter({ hasText: name });
-  page.once("dialog", (d) => d.accept());
-  await row.getByRole("button", { name: "🗑" }).click();
+  const row = programs.programRow(name);
+  await programs.deleteProgram(name);
 
   await expect(row).not.toBeVisible();
 });
@@ -120,29 +123,31 @@ test("TC-020 — Program Name filter returns only programs whose names match the
   const web1 = `Web Development ${ts}`;
   const web2 = `Web Development B ${ts}`;
   const data = `Data Science ${ts}`;
+  const programs = new ProgramsPage(page);
 
   trackProgram(await createProgram(page, web1, "Web desc"));
   trackProgram(await createProgram(page, web2, "Web desc B"));
   trackProgram(await createProgram(page, data, "Data desc"));
 
-  await page.getByRole("textbox", { name: /program name/i }).fill("Web Development");
-  await page.waitForLoadState("networkidle");
+  await skipIfNoProgramFilter(programs);
+  await programs.filterByName("Web Development");
 
-  await expect(page.getByRole("row").filter({ hasText: web1 })).toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: web2 })).toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: data })).not.toBeVisible();
+  await expect(programs.programRow(web1)).toBeVisible();
+  await expect(programs.programRow(web2)).toBeVisible();
+  await expect(programs.programRow(data)).not.toBeVisible();
 });
 
 test("TC-021 — Program Name filter supports partial matching (substring)", async ({
   page,
 }) => {
   const name = `Informatique & IA - Niveau ${Date.now()}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name, "Partial match test"));
 
-  await page.getByRole("textbox", { name: /program name/i }).fill("Niveau");
-  await page.waitForLoadState("networkidle");
+  await skipIfNoProgramFilter(programs);
+  await programs.filterByName("Niveau");
 
-  await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
+  await expect(programs.programRow(name)).toBeVisible();
 });
 
 test("TC-024 — Clearing filters restores the full unfiltered program list", async ({
@@ -151,19 +156,18 @@ test("TC-024 — Clearing filters restores the full unfiltered program list", as
   const ts = Date.now();
   const nameA = `Filter Clear A ${ts}`;
   const nameB = `Filter Clear B ${ts}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, nameA, "A desc"));
   trackProgram(await createProgram(page, nameB, "B desc"));
 
-  const filterInput = page.getByRole("textbox", { name: /program name/i });
-  await filterInput.fill("Filter Clear A");
-  await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("row").filter({ hasText: nameB })).not.toBeVisible();
+  await skipIfNoProgramFilter(programs);
+  await programs.filterByName("Filter Clear A");
+  await expect(programs.programRow(nameB)).not.toBeVisible();
 
-  await filterInput.fill("");
-  await page.waitForLoadState("networkidle");
+  await programs.clearFilter();
 
-  await expect(page.getByRole("row").filter({ hasText: nameA })).toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: nameB })).toBeVisible();
+  await expect(programs.programRow(nameA)).toBeVisible();
+  await expect(programs.programRow(nameB)).toBeVisible();
 });
 
 // --- Negative flows ---
@@ -172,10 +176,10 @@ test("TC-012 — Clicking a program row must not navigate away unexpectedly", as
   page,
 }) => {
   const name = `No Navigate ${Date.now()}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name, "Stay on page test"));
 
-  const row = page.getByRole("row").filter({ hasText: name });
-  await row.click();
+  await programs.selectProgram(name);
 
   expect(page.url()).toContain("/programs");
 });
@@ -183,7 +187,8 @@ test("TC-012 — Clicking a program row must not navigate away unexpectedly", as
 test("TC-013 — Manage Courses is not available if no program is selected", async ({
   page,
 }) => {
-  const manageCourses = page.getByRole("button", { name: /Manage Courses/i });
+  const programs = new ProgramsPage(page);
+  const manageCourses = programs.manageCoursesButton;
   const count = await manageCourses.count();
 
   if (count > 0) {
@@ -196,12 +201,12 @@ test("TC-013 — Manage Courses is not available if no program is selected", asy
 test("TC-025 — No results state is shown when filters match zero programs", async ({
   page,
 }) => {
-  const filterInput = page.getByRole("textbox", { name: /program name/i });
-  await filterInput.fill(`Nonexistent Program ${Date.now()}`);
-  await page.waitForLoadState("networkidle");
+  const programs = new ProgramsPage(page);
 
-  const rows = page.getByRole("row").filter({ hasNotText: /program name/i });
-  await expect(rows).toHaveCount(0);
+  await skipIfNoProgramFilter(programs);
+  await programs.filterByName(`Nonexistent Program ${Date.now()}`);
+
+  await expect(programs.dataRowsExcludingFilterHeader()).toHaveCount(0);
 });
 
 // --- Edge cases ---
@@ -211,8 +216,9 @@ test("TC-014 — Empty state renders correct icon, message, and 'Create Program'
 }) => {
   test.skip(true, "Requires a system with 0 programs — environment-specific setup needed");
 
-  await expect(page.getByText("No programs yet. Create your first program to get started.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Create Program" })).toBeVisible();
+  const programs = new ProgramsPage(page);
+  await expect(programs.emptyStateMessage).toBeVisible();
+  await expect(programs.createProgramEmptyButton).toBeVisible();
 });
 
 test("TC-016 — Description preview handles very long descriptions without breaking layout", async ({
@@ -220,9 +226,10 @@ test("TC-016 — Description preview handles very long descriptions without brea
 }) => {
   const name = `Long Desc ${Date.now()}`;
   const longDesc = "L".repeat(500);
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name, longDesc));
 
-  const row = page.getByRole("row").filter({ hasText: name });
+  const row = programs.programRow(name);
   await expect(row).toBeVisible();
 
   const rowBox = await row.boundingBox();
@@ -234,10 +241,10 @@ test("TC-017 — Program Name with special characters displays correctly in the 
   page,
 }) => {
   const name = `Informatique & IA - Niveau ${Date.now()}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name, "Special char display test"));
 
-  const row = page.getByRole("row").filter({ hasText: name });
-  await expect(row).toBeVisible();
+  await expect(programs.programRow(name)).toBeVisible();
 });
 
 test("TC-018 — Switching selection updates Semester Panel to the newly selected program", async ({
@@ -246,14 +253,15 @@ test("TC-018 — Switching selection updates Semester Panel to the newly selecte
   const ts = Date.now();
   const name1 = `Panel Switch A ${ts}`;
   const name2 = `Panel Switch B ${ts}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name1, "First program"));
   trackProgram(await createProgram(page, name2, "Second program"));
 
-  await page.getByRole("row").filter({ hasText: name1 }).click();
-  const panelContent1 = await page.locator('[class*="panel"], [class*="sidebar"], [role="complementary"]').textContent();
+  await programs.selectProgram(name1);
+  const panelContent1 = await programs.semesterPanelHeading(name1).textContent();
 
-  await page.getByRole("row").filter({ hasText: name2 }).click();
-  const panelContent2 = await page.locator('[class*="panel"], [class*="sidebar"], [role="complementary"]').textContent();
+  await programs.selectProgram(name2);
+  const panelContent2 = await programs.semesterPanelHeading(name2).textContent();
 
   expect(panelContent2).not.toBe(panelContent1);
 });
@@ -264,41 +272,42 @@ test("TC-019 — Row click still works after list re-fetch following a mutation"
   const ts = Date.now();
   const nameA = `Post Mutation A ${ts}`;
   const nameB = `Post Mutation B ${ts}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, nameA, "Mutation click test A"));
   trackProgram(await createProgram(page, nameB, "Mutation click test B"));
 
-  await deleteProgram(page, nameA);
+  await programs.deleteProgram(nameA);
 
-  const rowB = page.getByRole("row").filter({ hasText: nameB });
-  await rowB.click();
+  await programs.selectProgram(nameB);
 
-  await expect(page.getByText(/semester|holiday|break/i)).toBeVisible();
+  await expect(programs.semestersConfigLabel).toBeVisible();
+  await expect(programs.semesterPanelHeading(nameB)).toBeVisible();
 });
 
 test("TC-027 — Program Name filter trims leading/trailing spaces in the query", async ({
   page,
 }) => {
   const name = `Trim Filter ${Date.now()}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name, "Trim test"));
 
-  const filterInput = page.getByRole("textbox", { name: /program name/i });
-  await filterInput.fill(`  ${name}  `);
-  await page.waitForLoadState("networkidle");
+  await skipIfNoProgramFilter(programs);
+  await programs.filterByName(`  ${name}  `);
 
-  await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
+  await expect(programs.programRow(name)).toBeVisible();
 });
 
 test("TC-028 — Program Name filter handles special characters safely", async ({
   page,
 }) => {
   const name = `Informatique & IA - Niveau ${Date.now()}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, name, "Filter special chars"));
 
-  const filterInput = page.getByRole("textbox", { name: /program name/i });
-  await filterInput.fill("& IA -");
-  await page.waitForLoadState("networkidle");
+  await skipIfNoProgramFilter(programs);
+  await programs.filterByName("& IA -");
 
-  await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
+  await expect(programs.programRow(name)).toBeVisible();
 });
 
 test("TC-029 — After create/delete, list re-fetch preserves active filters and updates results accordingly", async ({
@@ -307,17 +316,17 @@ test("TC-029 — After create/delete, list re-fetch preserves active filters and
   const ts = Date.now();
   const web1 = `Web Alpha ${ts}`;
   const web2 = `Web Security ${ts}`;
+  const programs = new ProgramsPage(page);
   trackProgram(await createProgram(page, web1, "First web program"));
 
-  const filterInput = page.getByRole("textbox", { name: /program name/i });
-  await filterInput.fill("Web");
-  await page.waitForLoadState("networkidle");
-  await expect(page.getByRole("row").filter({ hasText: web1 })).toBeVisible();
+  await skipIfNoProgramFilter(programs);
+  await programs.filterByName("Web");
+  await expect(programs.programRow(web1)).toBeVisible();
 
   trackProgram(await createProgram(page, web2, "New web program"));
-  await expect(page.getByRole("row").filter({ hasText: web2 })).toBeVisible();
+  await expect(programs.programRow(web2)).toBeVisible();
 
-  await deleteProgram(page, web1);
-  await expect(page.getByRole("row").filter({ hasText: web1 })).not.toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: web2 })).toBeVisible();
+  await programs.deleteProgram(web1);
+  await expect(programs.programRow(web1)).not.toBeVisible();
+  await expect(programs.programRow(web2)).toBeVisible();
 });

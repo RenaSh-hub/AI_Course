@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
+import { ProgramsPage } from '../pages/programs.page.js';
 
 export async function openProgramsPage(page: Page): Promise<void> {
-  await page.goto('/programs');
-  await page.waitForLoadState('networkidle');
+  const programs = new ProgramsPage(page);
+  await programs.goto();
 }

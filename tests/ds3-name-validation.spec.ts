@@ -1,19 +1,11 @@
 import { test, expect, trackProgram } from "../fixtures/cleanup.fixture";
 import { submitCreateAndTrack } from "../support/create-program";
-import { openProgramsPage } from "../support/open-programs";
+import { ProgramsPage } from "../pages/programs.page";
 
 test.beforeEach(async ({ page }) => {
-  await openProgramsPage(page);
+  const programs = new ProgramsPage(page);
+  await programs.goto();
 });
-
-function openCreateModal(page: import("@playwright/test").Page) {
-  return test.step("Open Create Program modal", async () => {
-    await page.getByRole("button", { name: "+ New Program" }).click();
-    const modal = page.getByRole("dialog", { name: "New Program" });
-    await expect(modal).toBeVisible();
-    return modal;
-  });
-}
 
 // --- Positive flows ---
 
@@ -22,14 +14,15 @@ test("TC-001 — Program is created when name contains allowed special character
 }) => {
   const name = `Informatique & IA - Niveau ${Date.now()}`;
   const desc = "Evening track for working professionals.";
+  const programs = new ProgramsPage(page);
 
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-  await modal.getByRole("textbox", { name: "Description" }).fill(desc);
+  await programs.openNewProgram();
+  const modal = programs.newProgramModal;
+  await modal.fill(name, desc);
   trackProgram(await submitCreateAndTrack(page, modal));
 
-  await expect(modal).not.toBeVisible();
-  await expect(page.getByText(name)).toBeVisible();
+  await expect(modal.dialog).not.toBeVisible();
+  await expect(programs.programText(name)).toBeVisible();
 });
 
 test("TC-002 — Program is created when Program Name length is exactly 100 characters", async ({
@@ -37,13 +30,15 @@ test("TC-002 — Program is created when Program Name length is exactly 100 char
 }) => {
   const prefix = `Len100-${Date.now()}-`;
   const name100 = prefix + "X".repeat(100 - prefix.length);
+  const programs = new ProgramsPage(page);
 
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(name100);
+  await programs.openNewProgram();
+  const modal = programs.newProgramModal;
+  await modal.fill(name100);
   trackProgram(await submitCreateAndTrack(page, modal));
 
-  await expect(modal).not.toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: name100 })).toBeVisible();
+  await expect(modal.dialog).not.toBeVisible();
+  await expect(programs.programRow(name100)).toBeVisible();
 });
 
 test("TC-003 — Program is created when Description length is exactly 500 characters", async ({
@@ -51,25 +46,26 @@ test("TC-003 — Program is created when Description length is exactly 500 chara
 }) => {
   const name = `Desc500 ${Date.now()}`;
   const desc500 = "D".repeat(500);
+  const programs = new ProgramsPage(page);
 
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-  await modal.getByRole("textbox", { name: "Description" }).fill(desc500);
+  await programs.openNewProgram();
+  const modal = programs.newProgramModal;
+  await modal.fill(name, desc500);
   trackProgram(await submitCreateAndTrack(page, modal));
 
-  await expect(modal).not.toBeVisible();
-  await expect(page.getByText(name)).toBeVisible();
+  await expect(modal.dialog).not.toBeVisible();
+  await expect(programs.programText(name)).toBeVisible();
 });
 
 // --- Negative flows ---
 
-test("TC-004 — Whitespace-only Program Name blocks submission", async ({
-  page,
-}) => {
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill("   ");
+test("TC-004 — Whitespace-only Program Name blocks submission", async ({ page }) => {
+  const programs = new ProgramsPage(page);
+  await programs.openNewProgram();
+  const modal = programs.newProgramModal;
+  await modal.programNameInput.fill("   ");
 
-  await expect(modal.getByRole("button", { name: "Create" })).toBeDisabled();
+  await expect(modal.createButton).toBeDisabled();
 });
 
 // BUG: app allows duplicate names — no server-side uniqueness check
@@ -77,54 +73,54 @@ test.fail("TC-005 — Duplicate Program Name is rejected with a server error", a
   page,
 }) => {
   const name = `Dup Check ${Date.now()}`;
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
+  const programs = new ProgramsPage(page);
+
+  await programs.openNewProgram();
+  let modal = programs.newProgramModal;
+  await modal.fill(name);
   trackProgram(await submitCreateAndTrack(page, modal));
-  await expect(modal).not.toBeVisible();
+  await expect(modal.dialog).not.toBeVisible();
 
-  const modal2 = await openCreateModal(page);
-  await modal2.getByRole("textbox", { name: "Program Name" }).fill(name);
-  await modal2.getByRole("textbox", { name: "Description" }).fill("Duplicate attempt");
-  trackProgram(await submitCreateAndTrack(page, modal2));
+  await programs.openNewProgram();
+  modal = programs.newProgramModal;
+  await modal.fill(name, "Duplicate attempt");
+  trackProgram(await submitCreateAndTrack(page, modal));
 
-  await expect(modal2).toBeVisible();
-  await expect(modal2.getByText(/already exists|duplicate/i)).toBeVisible();
+  await expect(modal.dialog).toBeVisible();
+  await expect(modal.duplicateNameError()).toBeVisible();
 });
 
-test("TC-006 — Program Name exceeding 100 characters is rejected", async ({
-  page,
-}) => {
+test("TC-006 — Program Name exceeding 100 characters is rejected", async ({ page }) => {
   const prefix = `Over100-${Date.now()}-`;
   const name101 = prefix + "X".repeat(101 - prefix.length);
+  const programs = new ProgramsPage(page);
 
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(name101);
+  await programs.openNewProgram();
+  const modal = programs.newProgramModal;
+  await modal.fill(name101);
 
-  const createBtn = modal.getByRole("button", { name: "Create" });
-  if (await createBtn.isEnabled()) {
-    await createBtn.click();
-    await expect(modal).toBeVisible();
+  if (await modal.createButton.isEnabled()) {
+    await modal.submit();
+    await expect(modal.dialog).toBeVisible();
   } else {
-    await expect(createBtn).toBeDisabled();
+    await expect(modal.createButton).toBeDisabled();
   }
 });
 
-test("TC-007 — Description exceeding 500 characters is rejected", async ({
-  page,
-}) => {
+test("TC-007 — Description exceeding 500 characters is rejected", async ({ page }) => {
   const name = `Desc501 ${Date.now()}`;
   const desc501 = "D".repeat(501);
+  const programs = new ProgramsPage(page);
 
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-  await modal.getByRole("textbox", { name: "Description" }).fill(desc501);
+  await programs.openNewProgram();
+  const modal = programs.newProgramModal;
+  await modal.fill(name, desc501);
 
-  const createBtn = modal.getByRole("button", { name: "Create" });
-  if (await createBtn.isEnabled()) {
-    await createBtn.click();
-    await expect(modal).toBeVisible();
+  if (await modal.createButton.isEnabled()) {
+    await modal.submit();
+    await expect(modal.dialog).toBeVisible();
   } else {
-    await expect(createBtn).toBeDisabled();
+    await expect(modal.createButton).toBeDisabled();
   }
 });
 
@@ -133,19 +129,21 @@ test.fail("TC-008 — Program must not appear in list when server rejects creati
   page,
 }) => {
   const name = `Dup Phantom ${Date.now()}`;
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-  trackProgram(await submitCreateAndTrack(page, modal));
-  await expect(modal).not.toBeVisible();
+  const programs = new ProgramsPage(page);
 
-  const modal2 = await openCreateModal(page);
-  await modal2.getByRole("textbox", { name: "Program Name" }).fill(name);
-  await modal2.getByRole("textbox", { name: "Description" }).fill("Should fail");
-  trackProgram(await submitCreateAndTrack(page, modal2));
+  await programs.openNewProgram();
+  let modal = programs.newProgramModal;
+  await modal.fill(name);
+  trackProgram(await submitCreateAndTrack(page, modal));
+  await expect(modal.dialog).not.toBeVisible();
+
+  await programs.openNewProgram();
+  modal = programs.newProgramModal;
+  await modal.fill(name, "Should fail");
+  trackProgram(await submitCreateAndTrack(page, modal));
   await page.waitForLoadState("networkidle");
 
-  const rows = page.getByRole("row").filter({ hasText: name });
-  await expect(rows).toHaveCount(1);
+  await expect(programs.programRow(name)).toHaveCount(1);
 });
 
 // --- Edge cases ---
@@ -155,41 +153,49 @@ test.fail("TC-009 — Leading/trailing spaces are trimmed and still enforce dupl
   page,
 }) => {
   const name = `Trim Dup ${Date.now()}`;
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
+  const programs = new ProgramsPage(page);
+
+  await programs.openNewProgram();
+  let modal = programs.newProgramModal;
+  await modal.fill(name);
   trackProgram(await submitCreateAndTrack(page, modal));
-  await expect(modal).not.toBeVisible();
+  await expect(modal.dialog).not.toBeVisible();
 
-  const modal2 = await openCreateModal(page);
-  await modal2.getByRole("textbox", { name: "Program Name" }).fill(`  ${name}  `);
-  trackProgram(await submitCreateAndTrack(page, modal2));
+  await programs.openNewProgram();
+  modal = programs.newProgramModal;
+  await modal.programNameInput.fill(`  ${name}  `);
+  trackProgram(await submitCreateAndTrack(page, modal));
 
-  await expect(modal2).toBeVisible();
-  await expect(modal2.getByText(/already exists|duplicate/i)).toBeVisible();
+  await expect(modal.dialog).toBeVisible();
+  await expect(modal.duplicateNameError()).toBeVisible();
 });
 
 test("TC-010 — Program Name supports accented characters without corruption", async ({
   page,
 }) => {
   const name = `Économie Avancée ${Date.now()}`;
+  const programs = new ProgramsPage(page);
 
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
+  await programs.openNewProgram();
+  const modal = programs.newProgramModal;
+  await modal.fill(name);
   trackProgram(await submitCreateAndTrack(page, modal));
 
-  await expect(modal).not.toBeVisible();
-  await expect(page.getByText(name)).toBeVisible();
+  await expect(modal.dialog).not.toBeVisible();
+  await expect(programs.programText(name)).toBeVisible();
 });
 
 test("TC-011 — Program Name containing quotes/brackets is displayed safely", async ({
   page,
 }) => {
   const name = `AI "Foundations" (Level ${Date.now()})`;
+  const programs = new ProgramsPage(page);
 
-  const modal = await openCreateModal(page);
-  await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
+  await programs.openNewProgram();
+  const modal = programs.newProgramModal;
+  await modal.fill(name);
   trackProgram(await submitCreateAndTrack(page, modal));
 
-  await expect(modal).not.toBeVisible();
-  await expect(page.getByText(name)).toBeVisible();
+  await expect(modal.dialog).not.toBeVisible();
+  await expect(programs.programText(name)).toBeVisible();
 });

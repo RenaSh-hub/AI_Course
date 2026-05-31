@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { test as setup } from '@playwright/test';
+import { LoginPage } from '../pages/login.page.js';
 import { AUTH_FILE } from '../support/auth.constants';
 
 setup('authenticate', async ({ page }) => {
@@ -11,13 +12,8 @@ setup('authenticate', async ({ page }) => {
     throw new Error('DIDAXIS_EMAIL and DIDAXIS_PASSWORD must be set in .env');
   }
 
-  await page.goto('/login');
-  await page.getByRole('textbox', { name: 'Email' }).fill(email);
-  await page.getByRole('textbox', { name: 'Password' }).fill(password);
-  await page.getByRole('button', { name: 'Sign In' }).click();
-  await page.waitForURL((url) => !url.pathname.includes('login'), {
-    timeout: 30_000,
-  });
+  const login = new LoginPage(page);
+  await login.login(email, password);
 
   await mkdir(dirname(AUTH_FILE), { recursive: true });
   await page.context().storageState({ path: AUTH_FILE });

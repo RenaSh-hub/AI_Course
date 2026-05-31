@@ -1,4 +1,6 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { ProgramsPage } from '../pages/programs.page.js';
+import type { NewProgramModal } from '../pages/components/new-program.modal.js';
 
 const PROGRAMS_POST = /\/api\/programs\/?$/;
 
@@ -28,9 +30,12 @@ export function waitForCreatedProgramId(page: Page): Promise<string> {
     });
 }
 
-export async function submitCreateAndTrack(page: Page, modal: Locator): Promise<string> {
+export async function submitCreateAndTrack(
+  page: Page,
+  modal: NewProgramModal,
+): Promise<string> {
   const created = waitForCreatedProgramId(page);
-  await modal.getByRole('button', { name: 'Create' }).click();
+  await modal.submit();
   return created;
 }
 
@@ -39,14 +44,12 @@ export async function createProgram(
   name: string,
   description = '',
 ): Promise<string> {
-  await page.getByRole('button', { name: '+ New Program' }).click();
-  const modal = page.getByRole('dialog', { name: 'New Program' });
-  await modal.getByRole('textbox', { name: 'Program Name' }).fill(name);
-  if (description) {
-    await modal.getByRole('textbox', { name: 'Description' }).fill(description);
-  }
+  const programs = new ProgramsPage(page);
+  await programs.openNewProgram();
+  const modal = programs.newProgramModal;
+  await modal.fill(name, description);
   const id = await submitCreateAndTrack(page, modal);
-  await expect(modal).not.toBeVisible();
-  await expect(page.getByText(name)).toBeVisible();
+  await expect(modal.dialog).not.toBeVisible();
+  await expect(programs.programRow(name)).toBeVisible();
   return id;
 }

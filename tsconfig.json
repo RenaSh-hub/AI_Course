@@ -10,6 +10,7 @@
     "tests/**/*.ts",
     "fixtures/**/*.ts",
     "support/**/*.ts",
+    "pages/**/*.ts",
     "scripts/**/*.ts",
     "playwright.config.ts"
   ]
