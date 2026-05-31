@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
-import { AUTH_FILE } from "./support/auth.constants";
+import { AUTH_FILE, EMPTY_STORAGE_STATE } from "./support/auth.constants";
 
 dotenv.config();
 
@@ -27,11 +27,20 @@ export default defineConfig({
     },
     {
       name: "chromium",
+      testIgnore: /login\.specs\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: AUTH_FILE,
       },
       dependencies: ["setup"],
+    },
+    {
+      name: "chromium-login",
+      testMatch: /login\.specs\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: EMPTY_STORAGE_STATE,
+      },
     },
   ],
 });
