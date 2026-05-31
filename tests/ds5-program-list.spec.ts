@@ -1,17 +1,6 @@
-import { test, expect, type Page } from "../fixtures/cleanup.fixture";
+import { test, expect, trackProgram, type Page } from "../fixtures/cleanup.fixture";
 import { createProgram } from "../support/create-program";
-
-const BASE_URL = process.env.DIDAXIS_URL ?? "https://test.didaxis.studio";
-
-async function login(page: Page) {
-  await page.goto(`${BASE_URL}/login`);
-  await page.getByRole("textbox", { name: "Email" }).fill(process.env.DIDAXIS_EMAIL!);
-  await page.getByRole("textbox", { name: "Password" }).fill(process.env.DIDAXIS_PASSWORD!);
-  await page.getByRole("button", { name: "Sign In" }).click();
-  await page.waitForURL((url) => !url.pathname.includes("login"), {
-    timeout: 30_000,
-  });
-}
+import { openProgramsPage } from "../support/open-programs";
 
 async function deleteProgram(page: Page, name: string) {
   const row = page.getByRole("row").filter({ hasText: name });
@@ -21,9 +10,7 @@ async function deleteProgram(page: Page, name: string) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await login(page);
-  await page.goto(`${BASE_URL}/programs`);
-  await page.waitForLoadState("networkidle");
+  await openProgramsPage(page);
 });
 
 // --- Positive flows ---
@@ -37,8 +24,8 @@ test("TC-001 — Programs page shows a list with each program's name and descrip
   const name2 = `Data Science ${ts}`;
   const desc2 = "Python, stats, and ML fundamentals";
 
-  await createProgram(page, name1, desc1);
-  await createProgram(page, name2, desc2);
+  trackProgram(await createProgram(page, name1, desc1));
+  trackProgram(await createProgram(page, name2, desc2));
 
   const row1 = page.getByRole("row").filter({ hasText: name1 });
   const row2 = page.getByRole("row").filter({ hasText: name2 });
@@ -60,7 +47,7 @@ test("TC-004 — Clicking a program row opens the Semester Panel with semester-r
   page,
 }) => {
   const name = `Semester Panel ${Date.now()}`;
-  await createProgram(page, name, "Panel test");
+  trackProgram(await createProgram(page, name, "Panel test"));
 
   const row = page.getByRole("row").filter({ hasText: name });
   await row.click();
@@ -72,7 +59,7 @@ test("TC-005 — 'Manage Courses' navigates to Course Builder from the Semester 
   page,
 }) => {
   const name = `Manage Courses ${Date.now()}`;
-  await createProgram(page, name, "Navigate to Course Builder");
+  trackProgram(await createProgram(page, name, "Navigate to Course Builder"));
 
   const row = page.getByRole("row").filter({ hasText: name });
   await row.click();
@@ -90,7 +77,7 @@ test("TC-006 — Program list reflects a successful create without manual refres
   const name = `Cloud Engineering ${Date.now()}`;
   const desc = "AWS + containers + CI/CD";
 
-  await createProgram(page, name, desc);
+  trackProgram(await createProgram(page, name, desc));
 
   await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
 });
@@ -99,7 +86,7 @@ test("TC-007 — Program list reflects a successful edit without manual refresh"
   page,
 }) => {
   const name = `Edit Refresh ${Date.now()}`;
-  await createProgram(page, name, "Before edit");
+  trackProgram(await createProgram(page, name, "Before edit"));
 
   const row = page.getByRole("row").filter({ hasText: name });
   await row.getByRole("button", { name: "✏️" }).click();
@@ -117,7 +104,7 @@ test("TC-008 — Program list reflects a successful delete without manual refres
   page,
 }) => {
   const name = `Del Refresh ${Date.now()}`;
-  await createProgram(page, name, "Delete refresh test");
+  trackProgram(await createProgram(page, name, "Delete refresh test"));
 
   const row = page.getByRole("row").filter({ hasText: name });
   page.once("dialog", (d) => d.accept());
@@ -134,9 +121,9 @@ test("TC-020 — Program Name filter returns only programs whose names match the
   const web2 = `Web Development B ${ts}`;
   const data = `Data Science ${ts}`;
 
-  await createProgram(page, web1, "Web desc");
-  await createProgram(page, web2, "Web desc B");
-  await createProgram(page, data, "Data desc");
+  trackProgram(await createProgram(page, web1, "Web desc"));
+  trackProgram(await createProgram(page, web2, "Web desc B"));
+  trackProgram(await createProgram(page, data, "Data desc"));
 
   await page.getByRole("textbox", { name: /program name/i }).fill("Web Development");
   await page.waitForLoadState("networkidle");
@@ -150,7 +137,7 @@ test("TC-021 — Program Name filter supports partial matching (substring)", asy
   page,
 }) => {
   const name = `Informatique & IA - Niveau ${Date.now()}`;
-  await createProgram(page, name, "Partial match test");
+  trackProgram(await createProgram(page, name, "Partial match test"));
 
   await page.getByRole("textbox", { name: /program name/i }).fill("Niveau");
   await page.waitForLoadState("networkidle");
@@ -164,8 +151,8 @@ test("TC-024 — Clearing filters restores the full unfiltered program list", as
   const ts = Date.now();
   const nameA = `Filter Clear A ${ts}`;
   const nameB = `Filter Clear B ${ts}`;
-  await createProgram(page, nameA, "A desc");
-  await createProgram(page, nameB, "B desc");
+  trackProgram(await createProgram(page, nameA, "A desc"));
+  trackProgram(await createProgram(page, nameB, "B desc"));
 
   const filterInput = page.getByRole("textbox", { name: /program name/i });
   await filterInput.fill("Filter Clear A");
@@ -185,7 +172,7 @@ test("TC-012 — Clicking a program row must not navigate away unexpectedly", as
   page,
 }) => {
   const name = `No Navigate ${Date.now()}`;
-  await createProgram(page, name, "Stay on page test");
+  trackProgram(await createProgram(page, name, "Stay on page test"));
 
   const row = page.getByRole("row").filter({ hasText: name });
   await row.click();
@@ -233,7 +220,7 @@ test("TC-016 — Description preview handles very long descriptions without brea
 }) => {
   const name = `Long Desc ${Date.now()}`;
   const longDesc = "L".repeat(500);
-  await createProgram(page, name, longDesc);
+  trackProgram(await createProgram(page, name, longDesc));
 
   const row = page.getByRole("row").filter({ hasText: name });
   await expect(row).toBeVisible();
@@ -247,7 +234,7 @@ test("TC-017 — Program Name with special characters displays correctly in the 
   page,
 }) => {
   const name = `Informatique & IA - Niveau ${Date.now()}`;
-  await createProgram(page, name, "Special char display test");
+  trackProgram(await createProgram(page, name, "Special char display test"));
 
   const row = page.getByRole("row").filter({ hasText: name });
   await expect(row).toBeVisible();
@@ -259,8 +246,8 @@ test("TC-018 — Switching selection updates Semester Panel to the newly selecte
   const ts = Date.now();
   const name1 = `Panel Switch A ${ts}`;
   const name2 = `Panel Switch B ${ts}`;
-  await createProgram(page, name1, "First program");
-  await createProgram(page, name2, "Second program");
+  trackProgram(await createProgram(page, name1, "First program"));
+  trackProgram(await createProgram(page, name2, "Second program"));
 
   await page.getByRole("row").filter({ hasText: name1 }).click();
   const panelContent1 = await page.locator('[class*="panel"], [class*="sidebar"], [role="complementary"]').textContent();
@@ -277,8 +264,8 @@ test("TC-019 — Row click still works after list re-fetch following a mutation"
   const ts = Date.now();
   const nameA = `Post Mutation A ${ts}`;
   const nameB = `Post Mutation B ${ts}`;
-  await createProgram(page, nameA, "Mutation click test A");
-  await createProgram(page, nameB, "Mutation click test B");
+  trackProgram(await createProgram(page, nameA, "Mutation click test A"));
+  trackProgram(await createProgram(page, nameB, "Mutation click test B"));
 
   await deleteProgram(page, nameA);
 
@@ -292,7 +279,7 @@ test("TC-027 — Program Name filter trims leading/trailing spaces in the query"
   page,
 }) => {
   const name = `Trim Filter ${Date.now()}`;
-  await createProgram(page, name, "Trim test");
+  trackProgram(await createProgram(page, name, "Trim test"));
 
   const filterInput = page.getByRole("textbox", { name: /program name/i });
   await filterInput.fill(`  ${name}  `);
@@ -305,7 +292,7 @@ test("TC-028 — Program Name filter handles special characters safely", async (
   page,
 }) => {
   const name = `Informatique & IA - Niveau ${Date.now()}`;
-  await createProgram(page, name, "Filter special chars");
+  trackProgram(await createProgram(page, name, "Filter special chars"));
 
   const filterInput = page.getByRole("textbox", { name: /program name/i });
   await filterInput.fill("& IA -");
@@ -320,14 +307,14 @@ test("TC-029 — After create/delete, list re-fetch preserves active filters and
   const ts = Date.now();
   const web1 = `Web Alpha ${ts}`;
   const web2 = `Web Security ${ts}`;
-  await createProgram(page, web1, "First web program");
+  trackProgram(await createProgram(page, web1, "First web program"));
 
   const filterInput = page.getByRole("textbox", { name: /program name/i });
   await filterInput.fill("Web");
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("row").filter({ hasText: web1 })).toBeVisible();
 
-  await createProgram(page, web2, "New web program");
+  trackProgram(await createProgram(page, web2, "New web program"));
   await expect(page.getByRole("row").filter({ hasText: web2 })).toBeVisible();
 
   await deleteProgram(page, web1);

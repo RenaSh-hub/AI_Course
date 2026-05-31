@@ -1,22 +1,9 @@
-import { test, expect, type Page } from "../fixtures/cleanup.fixture";
+import { test, expect, trackProgram, type Page } from "../fixtures/cleanup.fixture";
 import { createProgram } from "../support/create-program";
-
-const BASE_URL = process.env.DIDAXIS_URL ?? "https://test.didaxis.studio";
-
-async function login(page: Page) {
-  await page.goto(`${BASE_URL}/login`);
-  await page.getByRole("textbox", { name: "Email" }).fill(process.env.DIDAXIS_EMAIL!);
-  await page.getByRole("textbox", { name: "Password" }).fill(process.env.DIDAXIS_PASSWORD!);
-  await page.getByRole("button", { name: "Sign In" }).click();
-  await page.waitForURL((url) => !url.pathname.includes("login"), {
-    timeout: 30_000,
-  });
-}
+import { openProgramsPage } from "../support/open-programs";
 
 test.beforeEach(async ({ page }) => {
-  await login(page);
-  await page.goto(`${BASE_URL}/programs`);
-  await page.waitForLoadState("networkidle");
+  await openProgramsPage(page);
 });
 
 // --- Positive flows ---
@@ -25,7 +12,7 @@ test("TC-001 — Admin sees native confirm dialog with program name", async ({
   page,
 }) => {
   const name = `Del Confirm ${Date.now()}`;
-  await createProgram(page, name);
+  trackProgram(await createProgram(page, name));
 
   const row = page.getByRole("row").filter({ hasText: name });
 
@@ -41,7 +28,7 @@ test("TC-002 — Confirming delete removes program from the list", async ({
   page,
 }) => {
   const name = `Del OK ${Date.now()}`;
-  await createProgram(page, name);
+  trackProgram(await createProgram(page, name));
 
   const row = page.getByRole("row").filter({ hasText: name });
 
@@ -53,7 +40,7 @@ test("TC-002 — Confirming delete removes program from the list", async ({
 
 test("TC-003 — Cancel leaves program in the list", async ({ page }) => {
   const name = `Del Cancel ${Date.now()}`;
-  await createProgram(page, name);
+  trackProgram(await createProgram(page, name));
 
   const row = page.getByRole("row").filter({ hasText: name });
 
@@ -69,8 +56,8 @@ test("TC-005 — Deleting one program does not remove others", async ({
   const ts = Date.now();
   const nameToDelete = `Del Target ${ts}`;
   const nameToKeep = `Del Keep ${ts}`;
-  await createProgram(page, nameToDelete);
-  await createProgram(page, nameToKeep);
+  trackProgram(await createProgram(page, nameToDelete));
+  trackProgram(await createProgram(page, nameToKeep));
 
   const targetRow = page.getByRole("row").filter({ hasText: nameToDelete });
   const keepRow = page.getByRole("row").filter({ hasText: nameToKeep });
@@ -86,7 +73,7 @@ test("TC-006 — List updates after delete without full page reload", async ({
   page,
 }) => {
   const name = `Del NoReload ${Date.now()}`;
-  await createProgram(page, name);
+  trackProgram(await createProgram(page, name));
 
   const row = page.getByRole("row").filter({ hasText: name });
 
@@ -101,7 +88,7 @@ test("TC-006 — List updates after delete without full page reload", async ({
 
 test("TC-011 — Cancel does not trigger delete API", async ({ page }) => {
   const name = `Del NoAPI ${Date.now()}`;
-  await createProgram(page, name);
+  trackProgram(await createProgram(page, name));
 
   const row = page.getByRole("row").filter({ hasText: name });
   const deleteRequests: string[] = [];
@@ -124,7 +111,7 @@ test("TC-015 — Confirm text includes special-character program name", async ({
   page,
 }) => {
   const name = `Test <${Date.now()}> & "Beta"`;
-  await createProgram(page, name);
+  trackProgram(await createProgram(page, name));
 
   const row = page.getByRole("row").filter({ hasText: name });
 
@@ -141,7 +128,7 @@ test("TC-016 — Long Program Name (100 chars) in delete dialog", async ({
 }) => {
   const prefix = `DelLong-${Date.now()}-`;
   const name100 = prefix + "X".repeat(100 - prefix.length);
-  await createProgram(page, name100);
+  trackProgram(await createProgram(page, name100));
 
   const row = page.getByRole("row").filter({ hasText: name100 });
 
@@ -155,7 +142,7 @@ test("TC-016 — Long Program Name (100 chars) in delete dialog", async ({
 
 test("TC-018 — Dismiss dialog (Esc) same as Cancel", async ({ page }) => {
   const name = `Del Esc ${Date.now()}`;
-  await createProgram(page, name);
+  trackProgram(await createProgram(page, name));
 
   const row = page.getByRole("row").filter({ hasText: name });
 

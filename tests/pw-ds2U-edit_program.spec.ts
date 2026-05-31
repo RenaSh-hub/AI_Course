@@ -1,19 +1,6 @@
-import { test, expect, type Page, type Locator } from "../fixtures/cleanup.fixture";
+import { test, expect, trackProgram, type Page, type Locator } from "../fixtures/cleanup.fixture";
 import { createProgram } from "../support/create-program";
-
-const BASE_URL = process.env.DIDAXIS_URL ?? "https://test.didaxis.studio";
-
-async function loginAndOpenPrograms(page: Page) {
-  await page.goto(`${BASE_URL}/login`);
-  await page.getByRole("textbox", { name: "Email" }).fill(process.env.DIDAXIS_EMAIL!);
-  await page.getByRole("textbox", { name: "Password" }).fill(process.env.DIDAXIS_PASSWORD!);
-  await page.getByRole("button", { name: "Sign In" }).click();
-  await page.waitForURL((url) => !url.pathname.includes("login"), {
-    timeout: 30_000,
-  });
-  await page.goto(`${BASE_URL}/programs`);
-  await page.waitForLoadState("networkidle");
-}
+import { openProgramsPage } from "../support/open-programs";
 
 async function openEditModal(page: Page, programName: string) {
   const row = page.getByRole("row").filter({ hasText: programName });
@@ -44,7 +31,7 @@ function duplicateNameError(modal: Locator, page: Page) {
 
 test.describe("PW-DS2U — Edit Program", () => {
   test.beforeEach(async ({ page }) => {
-    await loginAndOpenPrograms(page);
+    await openProgramsPage(page);
   });
 
   test.describe("Positive flows", () => {
@@ -53,7 +40,7 @@ test.describe("PW-DS2U — Edit Program", () => {
     }) => {
       const name = `PW2U Prepop ${Date.now()}`;
       const desc = "Full-stack cohort for 2026";
-      await createProgram(page, name, desc);
+      trackProgram(await createProgram(page, name, desc));
 
       const modal = await openEditModal(page, name);
       await expect(modal.getByRole("heading", { name: "Edit Program" })).toBeVisible();
@@ -65,7 +52,7 @@ test.describe("PW-DS2U — Edit Program", () => {
       page,
     }) => {
       const name = `PW2U Reload ${Date.now()}`;
-      await createProgram(page, name, "No stale data check");
+      trackProgram(await createProgram(page, name, "No stale data check"));
 
       await page.reload();
       await page.waitForLoadState("networkidle");
@@ -79,7 +66,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-002b — Successfully edit a program name (basic)", async ({ page }) => {
       const name = `PW2U BasicRename ${Date.now()}`;
-      await createProgram(page, name, "Full-stack cohort for 2026");
+      trackProgram(await createProgram(page, name, "Full-stack cohort for 2026"));
 
       const updatedName = `${name} - Updated`;
       const modal = await openEditModal(page, name);
@@ -95,7 +82,7 @@ test.describe("PW-DS2U — Edit Program", () => {
     }) => {
       const originalName = `PW2U NameOnly ${Date.now()}`;
       const description = "Full-stack cohort for 2026";
-      await createProgram(page, originalName, description);
+      trackProgram(await createProgram(page, originalName, description));
 
       let modal = await openEditModal(page, originalName);
       await expandAiConfigIfCollapsed(modal);
@@ -120,7 +107,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-004 — Admin saves Description and list updates", async ({ page }) => {
       const seedName = `PW2U DescAdmin ${Date.now()}`;
-      await createProgram(page, seedName, "Seed description");
+      trackProgram(await createProgram(page, seedName, "Seed description"));
 
       const modal = await openEditModal(page, seedName);
       const newDesc = `Updated cohort description ${Date.now()}`;
@@ -133,7 +120,7 @@ test.describe("PW-DS2U — Edit Program", () => {
     test("TC-005 — Description-only edit preserves Program Name", async ({ page }) => {
       const name = `PW2U DescOnly ${Date.now()}`;
       const originalDesc = "Full-stack cohort for 2026";
-      await createProgram(page, name, originalDesc);
+      trackProgram(await createProgram(page, name, originalDesc));
 
       let modal = await openEditModal(page, name);
       await modal.getByRole("textbox", { name: "Description" }).fill("Updated cohort description");
@@ -153,7 +140,7 @@ test.describe("PW-DS2U — Edit Program", () => {
     }) => {
       const name = `PW2U ConfigOnly ${Date.now()}`;
       const desc = "Stable description";
-      await createProgram(page, name, desc);
+      trackProgram(await createProgram(page, name, desc));
 
       let modal = await openEditModal(page, name);
       await expandAiConfigIfCollapsed(modal);
@@ -172,7 +159,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-007 — Clear Description saves", async ({ page }) => {
       const name = `PW2U ClearDesc ${Date.now()}`;
-      await createProgram(page, name, "Full-stack cohort for 2026");
+      trackProgram(await createProgram(page, name, "Full-stack cohort for 2026"));
 
       let modal = await openEditModal(page, name);
       await modal.getByRole("textbox", { name: "Description" }).fill("");
@@ -188,7 +175,7 @@ test.describe("PW-DS2U — Edit Program", () => {
       page,
     }) => {
       const name = `PW2U NoConfig ${Date.now()}`;
-      await createProgram(page, name, "No optional config");
+      trackProgram(await createProgram(page, name, "No optional config"));
 
       const newName = `${name} v2`;
       const modal = await openEditModal(page, name);
@@ -202,7 +189,7 @@ test.describe("PW-DS2U — Edit Program", () => {
       page,
     }) => {
       const name = `PW2U Toggle ${Date.now()}`;
-      await createProgram(page, name, "Config toggle test");
+      trackProgram(await createProgram(page, name, "Config toggle test"));
 
       const modal = await openEditModal(page, name);
       await expandAiConfigIfCollapsed(modal);
@@ -220,7 +207,7 @@ test.describe("PW-DS2U — Edit Program", () => {
       page,
     }) => {
       const name = `PW2U Collapsed ${Date.now()}`;
-      await createProgram(page, name, "Has config");
+      trackProgram(await createProgram(page, name, "Has config"));
 
       let modal = await openEditModal(page, name);
       await expandAiConfigIfCollapsed(modal);
@@ -245,7 +232,7 @@ test.describe("PW-DS2U — Edit Program", () => {
     }) => {
       const seedName = `PW2U RenameAdmin ${Date.now()}`;
       const cohortDesc = "Full-stack cohort for 2026";
-      await createProgram(page, seedName, cohortDesc);
+      trackProgram(await createProgram(page, seedName, cohortDesc));
 
       const updatedName = `Web Dev 2026 – Renamed ${Date.now()}`;
       const modal = await openEditModal(page, seedName);
@@ -264,7 +251,7 @@ test.describe("PW-DS2U — Edit Program", () => {
       page,
     }) => {
       const name = `PW2U ListRefresh ${Date.now()}`;
-      await createProgram(page, name, "List refresh test");
+      trackProgram(await createProgram(page, name, "List refresh test"));
 
       const renamed = `Web Dev 2026 – Renamed ${Date.now()}`;
       const modal = await openEditModal(page, name);
@@ -281,8 +268,8 @@ test.describe("PW-DS2U — Edit Program", () => {
     test("TC-011 — Duplicate active Program Name blocked on Save", async ({ page }) => {
       const a = `PW2U DupA ${Date.now()}`;
       const b = `PW2U DupB ${Date.now()}`;
-      await createProgram(page, a, "First");
-      await createProgram(page, b, "Second");
+      trackProgram(await createProgram(page, a, "First"));
+      trackProgram(await createProgram(page, b, "Second"));
 
       const modal = await openEditModal(page, a);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(b.toUpperCase());
@@ -298,7 +285,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-012 — Save disabled when Program Name is empty", async ({ page }) => {
       const name = `PW2U EmptyName ${Date.now()}`;
-      await createProgram(page, name, "Test");
+      trackProgram(await createProgram(page, name, "Test"));
 
       const modal = await openEditModal(page, name);
       await modal.getByRole("textbox", { name: "Program Name" }).fill("");
@@ -310,7 +297,7 @@ test.describe("PW-DS2U — Edit Program", () => {
       page,
     }) => {
       const name = `PW2U ForceSave ${Date.now()}`;
-      await createProgram(page, name, "Disabled save test");
+      trackProgram(await createProgram(page, name, "Disabled save test"));
 
       const modal = await openEditModal(page, name);
       await modal.getByRole("textbox", { name: "Program Name" }).fill("");
@@ -326,8 +313,8 @@ test.describe("PW-DS2U — Edit Program", () => {
     test("TC-012c — Duplicate name error is not shown while typing", async ({ page }) => {
       const a = `PW2U TypeA ${Date.now()}`;
       const b = `PW2U TypeB ${Date.now()}`;
-      await createProgram(page, a, "First");
-      await createProgram(page, b, "Second");
+      trackProgram(await createProgram(page, a, "First"));
+      trackProgram(await createProgram(page, b, "Second"));
 
       const modal = await openEditModal(page, a);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(b.toUpperCase());
@@ -338,7 +325,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-013 — Whitespace-only Program Name does not save", async ({ page }) => {
       const name = `PW2U Ws ${Date.now()}`;
-      await createProgram(page, name, "Whitespace test");
+      trackProgram(await createProgram(page, name, "Whitespace test"));
 
       const modal = await openEditModal(page, name);
       await modal.getByRole("textbox", { name: "Program Name" }).fill("   ");
@@ -360,8 +347,8 @@ test.describe("PW-DS2U — Edit Program", () => {
     }) => {
       const a = `PW2U LateA ${Date.now()}`;
       const b = `PW2U LateB ${Date.now()}`;
-      await createProgram(page, a, "x");
-      await createProgram(page, b, "y");
+      trackProgram(await createProgram(page, a, "x"));
+      trackProgram(await createProgram(page, b, "y"));
 
       const modal = await openEditModal(page, a);
       await modal.getByRole("textbox", { name: "Program Name" }).clear();
@@ -375,7 +362,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-015 — Program is not updated without clicking Save", async ({ page }) => {
       const name = `PW2U NoSave ${Date.now()}`;
-      await createProgram(page, name, "No save test");
+      trackProgram(await createProgram(page, name, "No save test"));
 
       const modal = await openEditModal(page, name);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(`${name} - Updated`);
@@ -387,7 +374,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-019 — Cancel without Save discards Program Name edits", async ({ page }) => {
       const name = `PW2U Cancel ${Date.now()}`;
-      await createProgram(page, name, "Original");
+      trackProgram(await createProgram(page, name, "Original"));
 
       const modal = await openEditModal(page, name);
       await modal.getByRole("textbox", { name: "Program Name" }).fill("Should Not Save");
@@ -401,7 +388,7 @@ test.describe("PW-DS2U — Edit Program", () => {
     test("TC-019b — Cancel without Save discards Description edits", async ({ page }) => {
       const name = `PW2U CancelDesc ${Date.now()}`;
       const originalDesc = "Full-stack cohort for 2026";
-      await createProgram(page, name, originalDesc);
+      trackProgram(await createProgram(page, name, originalDesc));
 
       const modal = await openEditModal(page, name);
       await modal.getByRole("textbox", { name: "Description" }).fill("Unsaved change");
@@ -416,7 +403,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-019c — Close X without Save discards edits", async ({ page }) => {
       const name = `PW2U DiscardX ${Date.now()}`;
-      await createProgram(page, name, "Original");
+      trackProgram(await createProgram(page, name, "Original"));
 
       const modal = await openEditModal(page, name);
       await modal.getByRole("textbox", { name: "Program Name" }).fill("Should Not Save");
@@ -435,7 +422,7 @@ test.describe("PW-DS2U — Edit Program", () => {
   test.describe("Edge cases", () => {
     test("TC-021 — Program Name trimmed on Save", async ({ page }) => {
       const name = `PW2U Trim ${Date.now()}`;
-      await createProgram(page, name, "Trim test");
+      trackProgram(await createProgram(page, name, "Trim test"));
 
       const trimmedName = `${name} - Updated`;
       const modal = await openEditModal(page, name);
@@ -453,7 +440,7 @@ test.describe("PW-DS2U — Edit Program", () => {
     test("TC-022 — Program Name 100 chars OK, 101 blocked or rejected", async ({ page }) => {
       const ts = Date.now();
       const baseName = `PW2U L${ts}`;
-      await createProgram(page, baseName, "Length test");
+      trackProgram(await createProgram(page, baseName, "Length test"));
 
       const prefix = `X${ts}-`;
       const name100 = prefix + "Y".repeat(100 - prefix.length);
@@ -484,7 +471,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-023 — Description 500 chars OK, 501 rejected or blocked", async ({ page }) => {
       const name = `PW2U Dlen ${Date.now()}`;
-      await createProgram(page, name, "x");
+      trackProgram(await createProgram(page, name, "x"));
 
       const d500 = "Z".repeat(500);
       const d501 = "Z".repeat(501);
@@ -513,7 +500,7 @@ test.describe("PW-DS2U — Edit Program", () => {
     }) => {
       const name = `PW2U <>&"' ${Date.now()}`;
       const desc = 'Desc & <tag> "quotes"';
-      await createProgram(page, name, desc);
+      trackProgram(await createProgram(page, name, desc));
 
       const modal = await openEditModal(page, name);
       await expect(modal.getByRole("textbox", { name: "Program Name" })).toHaveValue(name);
@@ -522,7 +509,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-025b — Special characters accepted on edit save", async ({ page }) => {
       const name = `PW2U SpecialEdit ${Date.now()}`;
-      await createProgram(page, name, "Original description");
+      trackProgram(await createProgram(page, name, "Original description"));
 
       const specialName = "Informatique & IA - Niveau 2";
       const specialDesc = 'A & B <tag> "quotes"';
@@ -537,7 +524,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
     test("TC-026 — Case-only rename succeeds without false duplicate", async ({ page }) => {
       const name = `pw2u case ${Date.now()}`;
-      await createProgram(page, name, "Case rename test");
+      trackProgram(await createProgram(page, name, "Case rename test"));
 
       const upper = name.toUpperCase();
       const modal = await openEditModal(page, name);
@@ -550,7 +537,7 @@ test.describe("PW-DS2U — Edit Program", () => {
     // BUG: double-click Save may submit twice — no idempotency guard
     test.fail("TC-027 — Rapid double-click on Save sends only one update", async ({ page }) => {
       const name = `PW2U DblSave ${Date.now()}`;
-      await createProgram(page, name, "Double-click test");
+      trackProgram(await createProgram(page, name, "Double-click test"));
 
       const updatedName = `${name} - Updated`;
       const modal = await openEditModal(page, name);

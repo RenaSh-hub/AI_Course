@@ -1,18 +1,9 @@
-import { test, expect } from "../fixtures/cleanup.fixture";
+import { test, expect, trackProgram } from "../fixtures/cleanup.fixture";
 import { submitCreateAndTrack } from "../support/create-program";
-
-const BASE_URL = process.env.DIDAXIS_URL ?? "https://test.didaxis.studio";
+import { openProgramsPage } from "../support/open-programs";
 
 test.beforeEach(async ({ page }) => {
-  await page.goto(`${BASE_URL}/login`);
-  await page.getByRole("textbox", { name: "Email" }).fill(process.env.DIDAXIS_EMAIL!);
-  await page.getByRole("textbox", { name: "Password" }).fill(process.env.DIDAXIS_PASSWORD!);
-  await page.getByRole("button", { name: "Sign In" }).click();
-  await page.waitForURL((url) => !url.pathname.includes("login"), {
-    timeout: 30_000,
-  });
-  await page.goto(`${BASE_URL}/programs`);
-  await page.waitForLoadState("networkidle");
+  await openProgramsPage(page);
 });
 
 function openCreateModal(page: import("@playwright/test").Page) {
@@ -35,7 +26,7 @@ test("TC-001 — Program is created when name contains allowed special character
   const modal = await openCreateModal(page);
   await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
   await modal.getByRole("textbox", { name: "Description" }).fill(desc);
-  await submitCreateAndTrack(page, modal);
+  trackProgram(await submitCreateAndTrack(page, modal));
 
   await expect(modal).not.toBeVisible();
   await expect(page.getByText(name)).toBeVisible();
@@ -49,7 +40,7 @@ test("TC-002 — Program is created when Program Name length is exactly 100 char
 
   const modal = await openCreateModal(page);
   await modal.getByRole("textbox", { name: "Program Name" }).fill(name100);
-  await submitCreateAndTrack(page, modal);
+  trackProgram(await submitCreateAndTrack(page, modal));
 
   await expect(modal).not.toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: name100 })).toBeVisible();
@@ -64,7 +55,7 @@ test("TC-003 — Program is created when Description length is exactly 500 chara
   const modal = await openCreateModal(page);
   await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
   await modal.getByRole("textbox", { name: "Description" }).fill(desc500);
-  await submitCreateAndTrack(page, modal);
+  trackProgram(await submitCreateAndTrack(page, modal));
 
   await expect(modal).not.toBeVisible();
   await expect(page.getByText(name)).toBeVisible();
@@ -88,13 +79,13 @@ test.fail("TC-005 — Duplicate Program Name is rejected with a server error", a
   const name = `Dup Check ${Date.now()}`;
   const modal = await openCreateModal(page);
   await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-  await submitCreateAndTrack(page, modal);
+  trackProgram(await submitCreateAndTrack(page, modal));
   await expect(modal).not.toBeVisible();
 
   const modal2 = await openCreateModal(page);
   await modal2.getByRole("textbox", { name: "Program Name" }).fill(name);
   await modal2.getByRole("textbox", { name: "Description" }).fill("Duplicate attempt");
-  await submitCreateAndTrack(page, modal2);
+  trackProgram(await submitCreateAndTrack(page, modal2));
 
   await expect(modal2).toBeVisible();
   await expect(modal2.getByText(/already exists|duplicate/i)).toBeVisible();
@@ -144,13 +135,13 @@ test.fail("TC-008 — Program must not appear in list when server rejects creati
   const name = `Dup Phantom ${Date.now()}`;
   const modal = await openCreateModal(page);
   await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-  await submitCreateAndTrack(page, modal);
+  trackProgram(await submitCreateAndTrack(page, modal));
   await expect(modal).not.toBeVisible();
 
   const modal2 = await openCreateModal(page);
   await modal2.getByRole("textbox", { name: "Program Name" }).fill(name);
   await modal2.getByRole("textbox", { name: "Description" }).fill("Should fail");
-  await submitCreateAndTrack(page, modal2);
+  trackProgram(await submitCreateAndTrack(page, modal2));
   await page.waitForLoadState("networkidle");
 
   const rows = page.getByRole("row").filter({ hasText: name });
@@ -166,12 +157,12 @@ test.fail("TC-009 — Leading/trailing spaces are trimmed and still enforce dupl
   const name = `Trim Dup ${Date.now()}`;
   const modal = await openCreateModal(page);
   await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-  await submitCreateAndTrack(page, modal);
+  trackProgram(await submitCreateAndTrack(page, modal));
   await expect(modal).not.toBeVisible();
 
   const modal2 = await openCreateModal(page);
   await modal2.getByRole("textbox", { name: "Program Name" }).fill(`  ${name}  `);
-  await submitCreateAndTrack(page, modal2);
+  trackProgram(await submitCreateAndTrack(page, modal2));
 
   await expect(modal2).toBeVisible();
   await expect(modal2.getByText(/already exists|duplicate/i)).toBeVisible();
@@ -184,7 +175,7 @@ test("TC-010 — Program Name supports accented characters without corruption", 
 
   const modal = await openCreateModal(page);
   await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-  await submitCreateAndTrack(page, modal);
+  trackProgram(await submitCreateAndTrack(page, modal));
 
   await expect(modal).not.toBeVisible();
   await expect(page.getByText(name)).toBeVisible();
@@ -197,7 +188,7 @@ test("TC-011 — Program Name containing quotes/brackets is displayed safely", a
 
   const modal = await openCreateModal(page);
   await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-  await submitCreateAndTrack(page, modal);
+  trackProgram(await submitCreateAndTrack(page, modal));
 
   await expect(modal).not.toBeVisible();
   await expect(page.getByText(name)).toBeVisible();

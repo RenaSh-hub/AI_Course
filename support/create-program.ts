@@ -1,5 +1,4 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { trackProgram } from '../fixtures/cleanup.fixture';
 
 const PROGRAMS_POST = /\/api\/programs\/?$/;
 
@@ -25,7 +24,6 @@ export function waitForCreatedProgramId(page: Page): Promise<string> {
       if (typeof id !== 'string' || id.length === 0) {
         throw new Error('POST /api/programs did not return data.id');
       }
-      trackProgram(id);
       return id;
     });
 }

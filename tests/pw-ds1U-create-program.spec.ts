@@ -1,19 +1,6 @@
-import { test, expect, type Page } from "../fixtures/cleanup.fixture";
+import { test, expect, trackProgram, type Page, type Locator } from "../fixtures/cleanup.fixture";
 import { submitCreateAndTrack, waitForCreatedProgramId } from "../support/create-program";
-
-const BASE_URL = process.env.DIDAXIS_URL ?? "https://test.didaxis.studio";
-
-async function loginAndOpenPrograms(page: Page) {
-  await page.goto(`${BASE_URL}/login`);
-  await page.getByRole("textbox", { name: "Email" }).fill(process.env.DIDAXIS_EMAIL!);
-  await page.getByRole("textbox", { name: "Password" }).fill(process.env.DIDAXIS_PASSWORD!);
-  await page.getByRole("button", { name: "Sign In" }).click();
-  await page.waitForURL((url) => !url.pathname.includes("login"), {
-    timeout: 30_000,
-  });
-  await page.goto(`${BASE_URL}/programs`);
-  await page.waitForLoadState("networkidle");
-}
+import { openProgramsPage } from "../support/open-programs";
 
 async function openCreateModal(page: Page) {
   await page.getByRole("button", { name: "+ New Program" }).click();
@@ -35,7 +22,7 @@ async function expandAiConfigIfCollapsed(modal: Locator) {
 
 test.describe("PW-DS1U — Create Program", () => {
   test.beforeEach(async ({ page }) => {
-    await loginAndOpenPrograms(page);
+    await openProgramsPage(page);
   });
 
   test.describe("Positive flows", () => {
@@ -62,7 +49,7 @@ test.describe("PW-DS1U — Create Program", () => {
       const modal = await openCreateModal(page);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(programName);
       await modal.getByRole("textbox", { name: "Description" }).fill(description);
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
 
       await expect(modal).not.toBeVisible();
       await expect(programRows(page, programName)).toBeVisible();
@@ -80,7 +67,7 @@ test.describe("PW-DS1U — Create Program", () => {
 
       const modal = await openCreateModal(page);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(programName);
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
 
       await expect(modal).not.toBeVisible();
       await expect(programRows(page, programName)).toBeVisible();
@@ -162,7 +149,7 @@ test.describe("PW-DS1U — Create Program", () => {
       const modal = await openCreateModal(page);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(paddedName);
       await modal.getByRole("textbox", { name: "Description" }).fill(description);
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
 
       await expect(modal).not.toBeVisible();
       await expect(page.getByText(trimmedName)).toBeVisible();
@@ -190,7 +177,7 @@ test.describe("PW-DS1U — Create Program", () => {
       const modal = await openCreateModal(page);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(programName);
       await modal.getByRole("textbox", { name: "Description" }).fill(description);
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
 
       await expect(modal).not.toBeVisible();
       await expect(programRows(page, programName)).toBeVisible();
@@ -205,7 +192,7 @@ test.describe("PW-DS1U — Create Program", () => {
 
       const modal = await openCreateModal(page);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(name100);
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
 
       await expect(modal).not.toBeVisible();
       await expect(programRows(page, name100)).toBeVisible();
@@ -237,7 +224,7 @@ test.describe("PW-DS1U — Create Program", () => {
       const modal = await openCreateModal(page);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
       await modal.getByRole("textbox", { name: "Description" }).fill(desc500);
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
 
       await expect(modal).not.toBeVisible();
       await expect(programRows(page, name)).toBeVisible();
@@ -267,7 +254,7 @@ test.describe("PW-DS1U — Create Program", () => {
       const name = `PW1U Dup ${Date.now()}`;
       const modal = await openCreateModal(page);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
       await expect(modal).not.toBeVisible();
 
       const modal2 = await openCreateModal(page);
@@ -286,7 +273,7 @@ test.describe("PW-DS1U — Create Program", () => {
 
       const modal = await openCreateModal(page);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
 
       await expect(modal).not.toBeVisible();
       await expect(programRows(page, name)).toBeVisible();
@@ -299,7 +286,7 @@ test.describe("PW-DS1U — Create Program", () => {
 
       const modal = await openCreateModal(page);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(name);
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
 
       await expect(modal).not.toBeVisible();
       await expect(programRows(page, name)).toBeVisible();
@@ -331,7 +318,12 @@ test.describe("PW-DS1U — Create Program", () => {
       const firstCreated = waitForCreatedProgramId(page);
       const secondCreated = waitForCreatedProgramId(page);
       await modal.getByRole("button", { name: "Create" }).dblclick();
-      await Promise.allSettled([firstCreated, secondCreated]);
+      const createdIds = await Promise.allSettled([firstCreated, secondCreated]);
+      for (const result of createdIds) {
+        if (result.status === "fulfilled") {
+          trackProgram(result.value);
+        }
+      }
 
       await expect(modal).not.toBeVisible();
       await expect(programRows(page, programName)).toHaveCount(1);
@@ -346,7 +338,7 @@ test.describe("PW-DS1U — Create Program", () => {
       const modal = await openCreateModal(page);
       await modal.getByRole("textbox", { name: "Program Name" }).fill(programName);
       await modal.getByRole("textbox", { name: "Description" }).fill(description);
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
 
       await expect(modal).not.toBeVisible();
       await expect(programRows(page, programName)).toBeVisible({ timeout: 5_000 });
@@ -362,7 +354,7 @@ test.describe("PW-DS1U — Create Program", () => {
       await modal.getByRole("textbox", { name: "Description" }).fill(description);
 
       const started = Date.now();
-      await submitCreateAndTrack(page, modal);
+      trackProgram(await submitCreateAndTrack(page, modal));
       await expect(modal).not.toBeVisible({ timeout: 5_000 });
       const elapsed = Date.now() - started;
 
