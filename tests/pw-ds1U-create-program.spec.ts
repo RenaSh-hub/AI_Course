@@ -269,8 +269,7 @@ test.describe("PW-DS1U — Create Program", () => {
       }
     });
 
-    // BUG: app allows duplicate names — no server-side uniqueness (DS-1 related defects)
-    test.fail("TC-017 — Duplicate Program Name is rejected with a server error", async ({
+    test("TC-017 — Duplicate Program Name is rejected with a server error", async ({
       page,
     }) => {
       const name = `PW1U Dup ${Date.now()}`;
