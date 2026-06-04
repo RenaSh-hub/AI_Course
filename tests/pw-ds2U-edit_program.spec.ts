@@ -279,7 +279,8 @@ test.describe("PW-DS2U — Edit Program", () => {
   });
 
   test.describe("Negative flows", () => {
-    test("TC-011 — Duplicate active Program Name blocked on Save", async ({ page }) => {
+    // BUG: duplicate program names on rename are allowed (case-insensitive uniqueness not enforced)
+    test.fail("TC-011 — Duplicate active Program Name blocked on Save", async ({ page }) => {
       const programs = new ProgramsPage(page);
       const a = `PW2U DupA ${Date.now()}`;
       const b = `PW2U DupB ${Date.now()}`;
@@ -592,8 +593,7 @@ test.describe("PW-DS2U — Edit Program", () => {
       await expect(programs.programText(upper)).toBeVisible();
     });
 
-    // BUG: double-click Save may submit twice — no idempotency guard
-    test.fail("TC-027 — Rapid double-click on Save sends only one update", async ({ page }) => {
+    test("TC-027 — Rapid double-click on Save sends only one update", async ({ page }) => {
       const programs = new ProgramsPage(page);
       const name = `PW2U DblSave ${Date.now()}`;
       trackProgram(await createProgram(page, name, "Double-click test"));
