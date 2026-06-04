@@ -4,21 +4,25 @@ import { AUTH_FILE, EMPTY_STORAGE_STATE } from "./support/auth.constants";
 
 dotenv.config();
 
+const isCI = !!process.env.CI;
+
 export default defineConfig({
   testDir: "./tests",
   globalSetup: "./support/global-setup.ts",
   globalTeardown: "./support/global-teardown.ts",
   fullyParallel: true,
-  retries: 0,
+  retries: isCI ? 1 : 0,
   reporter: [
     ["./support/program-cleanup-reporter.ts"],
+    ["list"],
+    ...(isCI ? [["github"] as const] : []),
     ["html", { open: "never" }],
   ],
   timeout: 60_000,
   use: {
     baseURL: process.env.DIDAXIS_URL,
     headless: true,
-    trace: "on",
+    trace: isCI ? "retain-on-failure" : "on",
   },
   projects: [
     {
