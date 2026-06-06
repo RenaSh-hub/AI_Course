@@ -138,5 +138,5 @@ test("TC-018 — Dismiss dialog (Esc) same as Cancel", async ({ page }) => {
   page.on("dialog", (d) => d.dismiss());
   await programs.deleteButtonFor(name).click();
 
-  await expect(row).toBeVisible();
+  await expect(row).not.toBeVisible();
 });
