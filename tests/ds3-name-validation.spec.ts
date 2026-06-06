@@ -159,3 +159,25 @@ test("TC-011 — Program Name containing quotes/brackets is displayed safely", a
   const name = `AI "Foundations" (Level ${Date.now()})`;
   trackProgram(await createProgram(page, name));
 });
+
+// BUG: app allows duplicate names — case-insensitive uniqueness not enforced
+test("TC-012 — Case-variant duplicate Program Name is rejected on create", async ({
+  page,
+}) => {
+  const name = `Case Dup ${Date.now()}`;
+  const programs = new ProgramsPage(page);
+
+  await programs.openNewProgram();
+  let modal = programs.newProgramModal;
+  await modal.fill(name);
+  trackProgram(await submitCreateAndTrack(page, modal));
+  await expect(modal.dialog).not.toBeVisible();
+
+  await programs.openNewProgram();
+  modal = programs.newProgramModal;
+  await modal.fill(name.toUpperCase(), "Case variant attempt");
+  trackProgram(await submitCreateAndTrack(page, modal));
+
+  await expect(modal.dialog).toBeVisible();
+  await expect(modal.duplicateNameError()).toBeVisible();
+});

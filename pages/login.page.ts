@@ -19,11 +19,19 @@ export class LoginPage {
     await this.page.goto(this.path);
   }
 
-  async login(email: string, password: string) {
-    await this.goto();
+  async fillCredentials(email: string, password: string) {
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
+  }
+
+  async submitSignIn() {
     await this.signInButton.click();
+  }
+
+  async login(email: string, password: string) {
+    await this.goto();
+    await this.fillCredentials(email, password);
+    await this.submitSignIn();
     await this.page.waitForURL((url) => !url.pathname.includes('login'), {
       timeout: 30_000,
     });

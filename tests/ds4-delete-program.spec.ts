@@ -285,12 +285,9 @@ test("TC-016 — Long Program Name (100 chars) in delete dialog", async ({ page 
 
 test("TC-017 — Delete last program shows empty state", async ({ page }) => {
   test.skip(
-    true,
-    "Requires a system with 0 programs — environment-specific setup needed",
+    !(process.env.DIDAXIS_API_TOKEN && process.env.DIDAXIS_URL),
+    "Covered by ds7-empty-state.spec.ts — requires DIDAXIS_API_TOKEN",
   );
-
-  const programs = new ProgramsPage(page);
-  await expect(programs.emptyStateMessage).toBeVisible();
 });
 
 test("TC-018 — Dismiss dialog (Esc) same as Cancel", async ({ page }) => {

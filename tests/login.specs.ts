@@ -22,4 +22,23 @@ test.describe('Login page', () => {
     const login = new LoginPage(page);
     await login.login(email, password);
   });
+
+  test('invalid credentials keep user on login page', async ({ page }) => {
+    const login = new LoginPage(page);
+    await login.goto();
+    await login.fillCredentials('invalid@example.com', 'wrong-password');
+    await login.submitSignIn();
+
+    await expect(page).toHaveURL(/\/login/);
+    await expect(login.signInButton).toBeVisible();
+  });
+
+  test('empty email and password do not redirect to app', async ({ page }) => {
+    const login = new LoginPage(page);
+    await login.goto();
+    await login.submitSignIn();
+
+    await expect(page).toHaveURL(/\/login/);
+    await expect(login.subtitle).toBeVisible();
+  });
 });

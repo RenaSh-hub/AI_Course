@@ -47,6 +47,34 @@ test("TC-002 — Programs page header and '+ New Program' button are visible for
   await expect(programs.newProgramButton).toBeVisible();
 });
 
+test("TC-003 — Admin sees Edit and Delete actions on each program row", async ({
+  page,
+}) => {
+  const name = `Row Actions ${Date.now()}`;
+  const programs = new ProgramsPage(page);
+  trackProgram(await createProgram(page, name, "Action icon test"));
+
+  await expect(programs.editButtonFor(name)).toBeVisible();
+  await expect(programs.deleteButtonFor(name)).toBeVisible();
+});
+
+test("TC-006 — Program without description still appears in the list", async ({ page }) => {
+  const name = `No Desc ${Date.now()}`;
+  const programs = new ProgramsPage(page);
+  trackProgram(await createProgram(page, name));
+
+  await expect(programs.programRow(name)).toBeVisible();
+});
+
+test("TC-007 — Sidebar Programs navigation opens the Programs page", async ({ page }) => {
+  const programs = new ProgramsPage(page);
+  await programs.nav.goToDashboard();
+  await programs.nav.goToPrograms();
+
+  await expect(page).toHaveURL(/\/programs/);
+  await expect(programs.heading).toBeVisible();
+});
+
 test("TC-004 — Clicking a program row opens the Semester Panel with semester-related content", async ({
   page,
 }) => {
@@ -129,6 +157,28 @@ test("TC-024 — Clearing filters restores the full unfiltered program list", as
 
 // --- Negative flows ---
 
+const PROGRAMS_GET = /\/api\/programs\/?$/;
+
+test("TC-008 — Programs API 500 does not show empty state", async ({ page }) => {
+  const programs = new ProgramsPage(page);
+
+  await page.route(PROGRAMS_GET, async (route) => {
+    if (route.request().method() !== "GET") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ message: "Internal server error" }),
+    });
+  });
+
+  await programs.goto();
+
+  await expect(programs.emptyStateMessage).not.toBeVisible();
+});
+
 test("TC-012 — Clicking a program row must not navigate away unexpectedly", async ({
   page,
 }) => {
@@ -171,11 +221,10 @@ test("TC-025 — No results state is shown when filters match zero programs", as
 test("TC-014 — Empty state renders correct icon, message, and 'Create Program' button when no programs exist", async ({
   page,
 }) => {
-  test.skip(true, "Requires a system with 0 programs — environment-specific setup needed");
-
-  const programs = new ProgramsPage(page);
-  await expect(programs.emptyStateMessage).toBeVisible();
-  await expect(programs.createProgramEmptyButton).toBeVisible();
+  test.skip(
+    !(process.env.DIDAXIS_API_TOKEN && process.env.DIDAXIS_URL),
+    "Covered by ds7-empty-state.spec.ts — requires DIDAXIS_API_TOKEN",
+  );
 });
 
 test("TC-016 — Description preview handles very long descriptions without breaking layout", async ({

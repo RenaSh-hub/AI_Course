@@ -140,6 +140,24 @@ test.describe("PW-DS1U — Create Program", () => {
       await expect(modal.dialog).not.toBeVisible();
       await expect(programs.programRow(programName)).toHaveCount(0);
     });
+
+    test("TC-007c — Click outside modal without saving does not create a program", async ({
+      page,
+    }) => {
+      const programName = `PW1U Outside ${Date.now()}`;
+      const description = "Click outside dismiss test";
+      const programs = new ProgramsPage(page);
+
+      await programs.openNewProgram();
+      const modal = programs.newProgramModal;
+      await expect(modal.dialog).toBeVisible();
+      await modal.programNameInput.fill(programName);
+      await modal.descriptionInput.fill(description);
+      await modal.dismissByClickOutside();
+
+      await expect(modal.dialog).not.toBeVisible();
+      await expect(programs.programRow(programName)).toHaveCount(0);
+    });
   });
 
   test.describe("Edge cases", () => {

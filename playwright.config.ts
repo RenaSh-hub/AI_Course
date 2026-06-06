@@ -30,8 +30,18 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
     },
     {
+      name: "empty-state",
+      testMatch: /ds7-empty-state\.spec\.ts/,
+      fullyParallel: false,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: AUTH_FILE,
+      },
+      dependencies: ["setup"],
+    },
+    {
       name: "chromium",
-      testIgnore: /login\.specs\.ts/,
+      testIgnore: /login\.specs\.ts|ds7-empty-state\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: AUTH_FILE,

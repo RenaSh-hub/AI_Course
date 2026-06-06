@@ -4,3 +4,4 @@ export { ProgramsPage } from './programs.page.js';
 export { AppNavigation } from './components/app-navigation.js';
 export { NewProgramModal } from './components/new-program.modal.js';
 export { EditProgramModal } from './components/edit-program.modal.js';
+export { AiGenerationConfigSection } from './components/ai-generation-config.section.js';

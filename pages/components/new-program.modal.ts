@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
+import { AiGenerationConfigSection } from './ai-generation-config.section.js';
 
 export class NewProgramModal {
   readonly dialog: Locator;
@@ -8,9 +9,14 @@ export class NewProgramModal {
   readonly cancelButton: Locator;
   readonly createButton: Locator;
   readonly closeButton: Locator;
+  readonly aiConfig: AiGenerationConfigSection;
   readonly showAiConfigButton: Locator;
   readonly hideAiConfigButton: Locator;
   readonly totalProgramHoursInput: Locator;
+  readonly defaultSessionHoursInput: Locator;
+  readonly defaultExamHoursInput: Locator;
+  readonly targetAudienceInput: Locator;
+  readonly focusAreasInput: Locator;
 
   constructor(private readonly page: Page) {
     this.dialog = page.getByRole('dialog', { name: 'New Program' });
@@ -20,15 +26,14 @@ export class NewProgramModal {
     this.cancelButton = this.dialog.getByRole('button', { name: 'Cancel' });
     this.createButton = this.dialog.getByRole('button', { name: 'Create', exact: true });
     this.closeButton = this.dialog.getByRole('banner').getByRole('button');
-    this.showAiConfigButton = this.dialog.getByRole('button', {
-      name: /Show AI Generation Config/,
-    });
-    this.hideAiConfigButton = this.dialog.getByRole('button', {
-      name: /Hide AI Generation Config/,
-    });
-    this.totalProgramHoursInput = this.dialog.getByRole('textbox', {
-      name: 'Total Program Hours',
-    });
+    this.aiConfig = new AiGenerationConfigSection(page, this.dialog);
+    this.showAiConfigButton = this.aiConfig.showButton;
+    this.hideAiConfigButton = this.aiConfig.hideButton;
+    this.totalProgramHoursInput = this.aiConfig.totalProgramHoursInput;
+    this.defaultSessionHoursInput = this.aiConfig.defaultSessionHoursInput;
+    this.defaultExamHoursInput = this.aiConfig.defaultExamHoursInput;
+    this.targetAudienceInput = this.aiConfig.targetAudienceInput;
+    this.focusAreasInput = this.aiConfig.focusAreasInput;
   }
 
   async fill(name: string, description = '') {
@@ -51,12 +56,19 @@ export class NewProgramModal {
   }
 
   async expandAiConfigIfCollapsed() {
-    if (await this.showAiConfigButton.isVisible()) {
-      await this.showAiConfigButton.click();
-    }
+    await this.aiConfig.expandIfCollapsed();
   }
 
   duplicateNameError() {
     return this.dialog.getByText(/already exists|duplicate/i);
+  }
+
+  async dismissByClickOutside() {
+    const box = await this.dialog.boundingBox();
+    if (box) {
+      await this.page.mouse.click(Math.max(5, box.x - 10), box.y + box.height / 2);
+      return;
+    }
+    await this.page.mouse.click(5, 5);
   }
 }

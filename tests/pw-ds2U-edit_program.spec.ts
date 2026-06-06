@@ -456,6 +456,22 @@ test.describe("PW-DS2U — Edit Program", () => {
       await expect(programs.programText(name)).toBeVisible();
       await expect(programs.programRow("Should Not Save")).toHaveCount(0);
     });
+
+    test("TC-019d — Click outside without Save discards edits", async ({ page }) => {
+      const programs = new ProgramsPage(page);
+      const name = `PW2U Outside ${Date.now()}`;
+      trackProgram(await createProgram(page, name, "Original"));
+
+      await programs.openEditFor(name);
+      const modal = programs.editProgramModal;
+      await expect(modal.dialog).toBeVisible();
+      await modal.programNameInput.fill("Should Not Save");
+      await modal.dismissByClickOutside();
+      await expect(modal.dialog).not.toBeVisible();
+
+      await expect(programs.programText(name)).toBeVisible();
+      await expect(programs.programRow("Should Not Save")).toHaveCount(0);
+    });
   });
 
   test.describe("Edge cases", () => {
