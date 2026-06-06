@@ -244,4 +244,11 @@ test.describe("PW-DS1U — Create Program", () => {
       await expect(programs.programRow(programName)).toBeVisible();
     });
   });
+
+  // REMOVE after pipeline/harness verification — intentional flake for testing
+  test.describe("Testing harness", () => {
+    test("TC-FLAKY — Intentional flaky failure for pipeline verification", async () => {
+      expect(Math.random()).toBeGreaterThan(0.99);
+    });
+  });
 });
