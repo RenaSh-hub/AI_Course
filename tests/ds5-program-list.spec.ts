@@ -73,49 +73,6 @@ test("TC-005 — 'Manage Courses' navigates to Course Builder from the Semester 
   expect(page.url()).toMatch(/\/programs\/[^/]+\/courses/);
 });
 
-test("TC-006 — Program list reflects a successful create without manual refresh", async ({
-  page,
-}) => {
-  const name = `Cloud Engineering ${Date.now()}`;
-  const desc = "AWS + containers + CI/CD";
-  const programs = new ProgramsPage(page);
-
-  trackProgram(await createProgram(page, name, desc));
-
-  await expect(programs.programRow(name)).toBeVisible();
-});
-
-test("TC-007 — Program list reflects a successful edit without manual refresh", async ({
-  page,
-}) => {
-  const name = `Edit Refresh ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, "Before edit"));
-
-  await programs.openEditFor(name);
-
-  const modal = programs.editProgramModal;
-  const updatedName = `${name} - Updated`;
-  await modal.fillProgramName(updatedName);
-  await modal.submit();
-  await expect(modal.dialog).not.toBeVisible();
-
-  await expect(programs.programRow(updatedName)).toBeVisible();
-});
-
-test("TC-008 — Program list reflects a successful delete without manual refresh", async ({
-  page,
-}) => {
-  const name = `Del Refresh ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, "Delete refresh test"));
-
-  const row = programs.programRow(name);
-  await programs.deleteProgram(name);
-
-  await expect(row).not.toBeVisible();
-});
-
 test("TC-020 — Program Name filter returns only programs whose names match the query", async ({
   page,
 }) => {

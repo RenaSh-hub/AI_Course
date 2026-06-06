@@ -1,5 +1,5 @@
 import { test, expect, trackProgram } from "../fixtures/cleanup.fixture";
-import { submitCreateAndTrack } from "../support/create-program";
+import { createProgram, submitCreateAndTrack } from "../support/create-program";
 import { ProgramsPage } from "../pages/programs.page";
 
 test.beforeEach(async ({ page }) => {
@@ -14,15 +14,7 @@ test("TC-001 — Program is created when name contains allowed special character
 }) => {
   const name = `Informatique & IA - Niveau ${Date.now()}`;
   const desc = "Evening track for working professionals.";
-  const programs = new ProgramsPage(page);
-
-  await programs.openNewProgram();
-  const modal = programs.newProgramModal;
-  await modal.fill(name, desc);
-  trackProgram(await submitCreateAndTrack(page, modal));
-
-  await expect(modal.dialog).not.toBeVisible();
-  await expect(programs.programText(name)).toBeVisible();
+  trackProgram(await createProgram(page, name, desc));
 });
 
 test("TC-002 — Program is created when Program Name length is exactly 100 characters", async ({
@@ -30,15 +22,7 @@ test("TC-002 — Program is created when Program Name length is exactly 100 char
 }) => {
   const prefix = `Len100-${Date.now()}-`;
   const name100 = prefix + "X".repeat(100 - prefix.length);
-  const programs = new ProgramsPage(page);
-
-  await programs.openNewProgram();
-  const modal = programs.newProgramModal;
-  await modal.fill(name100);
-  trackProgram(await submitCreateAndTrack(page, modal));
-
-  await expect(modal.dialog).not.toBeVisible();
-  await expect(programs.programRow(name100)).toBeVisible();
+  trackProgram(await createProgram(page, name100));
 });
 
 test("TC-003 — Program is created when Description length is exactly 500 characters", async ({
@@ -46,15 +30,7 @@ test("TC-003 — Program is created when Description length is exactly 500 chara
 }) => {
   const name = `Desc500 ${Date.now()}`;
   const desc500 = "D".repeat(500);
-  const programs = new ProgramsPage(page);
-
-  await programs.openNewProgram();
-  const modal = programs.newProgramModal;
-  await modal.fill(name, desc500);
-  trackProgram(await submitCreateAndTrack(page, modal));
-
-  await expect(modal.dialog).not.toBeVisible();
-  await expect(programs.programText(name)).toBeVisible();
+  trackProgram(await createProgram(page, name, desc500));
 });
 
 // --- Negative flows ---
@@ -174,28 +150,12 @@ test("TC-010 — Program Name supports accented characters without corruption", 
   page,
 }) => {
   const name = `Économie Avancée ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-
-  await programs.openNewProgram();
-  const modal = programs.newProgramModal;
-  await modal.fill(name);
-  trackProgram(await submitCreateAndTrack(page, modal));
-
-  await expect(modal.dialog).not.toBeVisible();
-  await expect(programs.programText(name)).toBeVisible();
+  trackProgram(await createProgram(page, name));
 });
 
 test("TC-011 — Program Name containing quotes/brackets is displayed safely", async ({
   page,
 }) => {
   const name = `AI "Foundations" (Level ${Date.now()})`;
-  const programs = new ProgramsPage(page);
-
-  await programs.openNewProgram();
-  const modal = programs.newProgramModal;
-  await modal.fill(name);
-  trackProgram(await submitCreateAndTrack(page, modal));
-
-  await expect(modal.dialog).not.toBeVisible();
-  await expect(programs.programText(name)).toBeVisible();
+  trackProgram(await createProgram(page, name));
 });
