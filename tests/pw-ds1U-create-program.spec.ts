@@ -179,7 +179,7 @@ test.describe("PW-DS1U — Create Program", () => {
     });
 
     // BUG: double-click submits twice — no idempotency guard (DS-17, SS-26)
-    test.fail("TC-011 — Rapid double-click on Create creates only one program", async ({
+    test("TC-011 — Rapid double-click on Create creates only one program", async ({
       page,
     }) => {
       const programName = `PW1U Mobile ${Date.now()}`;
@@ -242,13 +242,6 @@ test.describe("PW-DS1U — Create Program", () => {
 
       expect(elapsed).toBeLessThan(5_000);
       await expect(programs.programRow(programName)).toBeVisible();
-    });
-  });
-
-  // REMOVE after pipeline/harness verification — intentional flake for testing
-  test.describe("Testing harness", () => {
-    test("TC-FLAKY — Intentional flaky failure for pipeline verification", async () => {
-      expect(Math.random()).toBeGreaterThan(0.99);
     });
   });
 });

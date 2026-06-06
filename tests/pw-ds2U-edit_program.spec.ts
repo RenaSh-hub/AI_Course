@@ -280,7 +280,7 @@ test.describe("PW-DS2U — Edit Program", () => {
 
   test.describe("Negative flows", () => {
     // BUG: duplicate program names on rename are allowed (case-insensitive uniqueness not enforced)
-    test.fail("TC-011 — Duplicate active Program Name blocked on Save", async ({ page }) => {
+    test("TC-011 — Duplicate active Program Name blocked on Save", async ({ page }) => {
       const programs = new ProgramsPage(page);
       const a = `PW2U DupA ${Date.now()}`;
       const b = `PW2U DupB ${Date.now()}`;

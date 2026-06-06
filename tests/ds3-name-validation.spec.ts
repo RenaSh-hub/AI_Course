@@ -45,7 +45,7 @@ test("TC-004 — Whitespace-only Program Name blocks submission", async ({ page 
 });
 
 // BUG: app allows duplicate names — no server-side uniqueness check
-test.fail("TC-005 — Duplicate Program Name is rejected with a server error", async ({
+test("TC-005 — Duplicate Program Name is rejected with a server error", async ({
   page,
 }) => {
   const name = `Dup Check ${Date.now()}`;
@@ -101,7 +101,7 @@ test("TC-007 — Description exceeding 500 characters is rejected", async ({ pag
 });
 
 // BUG: depends on duplicate rejection which the app does not enforce
-test.fail("TC-008 — Program must not appear in list when server rejects creation", async ({
+test("TC-008 — Program must not appear in list when server rejects creation", async ({
   page,
 }) => {
   const name = `Dup Phantom ${Date.now()}`;
@@ -125,7 +125,7 @@ test.fail("TC-008 — Program must not appear in list when server rejects creati
 // --- Edge cases ---
 
 // BUG: depends on duplicate rejection which the app does not enforce
-test.fail("TC-009 — Leading/trailing spaces are trimmed and still enforce duplicate prevention", async ({
+test("TC-009 — Leading/trailing spaces are trimmed and still enforce duplicate prevention", async ({
   page,
 }) => {
   const name = `Trim Dup ${Date.now()}`;
