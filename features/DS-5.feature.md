@@ -5,159 +5,102 @@ Feature: DS-5 — Program list filtering and display
 
   # Happy paths
 
-  Scenario: Programs page shows a list with each program's name and description preview
+  Scenario: Display program list with key details
     Given I am logged in as admin
-    And programs "Web Development 2026" and "Data Science 2026" exist
+    And programs exist in the system
     When I navigate to the Programs page
-    Then I see "Web Development 2026" with its description preview
-    And I see "Data Science 2026" with its description preview
+    Then I see a list showing each program's name and description
 
-  Scenario: Programs page header and "+ New Program" button are visible for Admin
+  Scenario: Program list shows name and description for a single program
     Given I am logged in as admin
+    And a program "Web Development 2026" exists with Description "Full-stack cohort for 2026"
     When I navigate to the Programs page
-    Then I see the "Programs" heading
-    And I see the "+ New Program" button
+    Then I see "Web Development 2026" in the program list
+    And I see "Full-stack cohort for 2026" in the same row as "Web Development 2026"
 
-  Scenario: Admin sees Edit and Delete actions on each program row
+  Scenario: Program list shows multiple programs with distinct names and descriptions
     Given I am logged in as admin
-    And a program "Row Actions" exists
+    And a program "Data Science 2026" exists with Description "ML fundamentals track"
+    And a program "UX Design 2026" exists with Description "Human-centered design bootcamp"
     When I navigate to the Programs page
-    Then I see an Edit button for "Row Actions"
-    And I see a Delete button for "Row Actions"
+    Then I see "Data Science 2026" in the program list
+    And I see "ML fundamentals track" in the same row as "Data Science 2026"
+    And I see "UX Design 2026" in the program list
+    And I see "Human-centered design bootcamp" in the same row as "UX Design 2026"
 
-  Scenario: Program without description still appears in the list
+  Scenario: Programs page heading and table structure are visible
     Given I am logged in as admin
-    And a program "No Desc Program" exists with no description
+    And at least one program exists
     When I navigate to the Programs page
-    Then I see "No Desc Program" in the program list
-
-  Scenario: Sidebar Programs navigation opens the Programs page
-    Given I am logged in as admin
-    And I am on the Dashboard
-    When I click "Programs" in the sidebar
-    Then I am on the Programs page at /programs
-
-  Scenario: Clicking a program row opens the Semester Panel
-    Given I am logged in as admin
-    And a program "Semester Panel" exists
-    When I click the row for "Semester Panel"
-    Then I see semester-related content for "Semester Panel"
-
-  Scenario: Manage Courses navigates to Course Builder from the Semester Panel
-    Given I am logged in as admin
-    And a program "Manage Courses" exists
-    When I select "Manage Courses" and click "Manage Courses"
-    Then I am navigated to /programs/{id}/courses
-
-  Scenario: Program Name filter returns only matching programs
-    Given I am logged in as admin
-    And programs "Web Development A" and "Data Science" exist
-    When I filter by Program Name "Web Development"
-    Then I see "Web Development A"
-    And I do not see "Data Science"
-
-  Scenario: Clearing filters restores the full unfiltered program list
-    Given I am logged in as admin
-    And programs "Filter Clear A" and "Filter Clear B" exist
-    When I filter by "Filter Clear A"
-    And I clear the filter
-    Then I see both "Filter Clear A" and "Filter Clear B"
+    Then I see the "Programs" page heading
+    And I see a "Program" column header in the list
 
   Scenario: Empty state when no programs exist
     Given I am logged in as admin
     And no programs exist
     When I navigate to the Programs page
-    Then I see "No programs yet. Create your first program to get started."
-    And I see a "Create Program" button
+    Then I see a message indicating no programs have been created
+    And I see a prompt to create the first program
 
-  Scenario: Empty state Create Program button opens the New Program modal
+  Scenario: Empty state Create Program button opens New Program modal
     Given I am logged in as admin
     And no programs exist
-    When I click "Create Program" on the empty state
-    Then I see the "New Program" modal
+    When I navigate to the Programs page
+    And I click the Create Program button in the empty state
+    Then I see the New Program modal
 
   # Negative
 
-  Scenario: Clicking a program row must not navigate away unexpectedly
+  Scenario: Empty state is not shown when programs exist
     Given I am logged in as admin
-    And a program "No Navigate" exists
-    When I click the row for "No Navigate"
-    Then the URL still contains "/programs"
-
-  Scenario: Manage Courses is not available if no program is selected
-    Given I am logged in as admin
+    And a program "Visible Program" exists
     When I navigate to the Programs page
-    And no program row is selected
-    Then the Manage Courses button is disabled or not visible
+    Then I do not see the empty-state message
+    And I see "Visible Program" in the program list
 
-  Scenario: No results state is shown when filters match zero programs
+  Scenario: Program without description still appears in list
     Given I am logged in as admin
-    And the Program Name filter is available
-    When I filter by a nonexistent program name
-    Then no program data rows are shown
-
-  Scenario: Programs API 500 shows an error state, not the empty state
-    Given I am logged in as admin
-    When the Programs API returns 500
-    Then I do not see the empty state message
-    And an error indication is shown
-
-  Scenario: Editor sees "+ New Program" but Viewer does not
-    Given programs exist in the system
-    When I am logged in as editor and open Programs
-    Then I see the "+ New Program" button
-    When I am logged in as viewer and open Programs
-    Then I do not see the "+ New Program" button
+    And a program "No Desc Program" exists with an empty Description
+    When I navigate to the Programs page
+    Then I see "No Desc Program" in the program list
 
   # Edge cases
 
-  Scenario: Description preview handles very long descriptions without breaking layout
+  Scenario: Program name with special characters displays correctly in list
     Given I am logged in as admin
-    And a program with a 500-character description exists
+    And a program "Informatique & IA - Niveau 2" exists with Description "A & B <tag> \"quotes\""
     When I navigate to the Programs page
-    Then the program row height remains within reasonable bounds
+    Then I see "Informatique & IA - Niveau 2" in the program list
+    And I see "A & B <tag> \"quotes\"" in the same row
 
-  Scenario: Program Name with special characters displays correctly in the list
+  Scenario: Long description up to 500 characters displays in list row
     Given I am logged in as admin
-    And a program "Informatique & IA - Niveau 2" exists
+    And a program "Long Desc Program" exists with a 500-character Description
     When I navigate to the Programs page
-    Then I see "Informatique & IA - Niveau 2" in the list
+    Then I see "Long Desc Program" in the program list
+    And the row for "Long Desc Program" shows the saved description text
 
-  Scenario: Switching selection updates Semester Panel to the newly selected program
+  Scenario: Program list persists after page reload
     Given I am logged in as admin
-    And programs "Panel Switch A" and "Panel Switch B" exist
-    When I click "Panel Switch A"
-    And I click "Panel Switch B"
-    Then the semester panel heading shows "Panel Switch B"
+    And a program "Persist Check" exists with Description "Survives reload"
+    When I navigate to the Programs page
+    And I reload the Programs page
+    Then I see "Persist Check" in the program list
+    And I see "Survives reload" in the same row
 
-  Scenario: Row click still works after list re-fetch following a mutation
+  Scenario: New Program button is available when programs exist
     Given I am logged in as admin
-    And programs "Post Mutation A" and "Post Mutation B" exist
-    When I delete "Post Mutation A"
-    And I click the row for "Post Mutation B"
-    Then the semester panel shows content for "Post Mutation B"
-
-  Scenario: Program Name filter trims leading/trailing spaces in the query
-    Given I am logged in as admin
-    And a program "Trim Filter" exists
-    When I filter by "  Trim Filter  "
-    Then I see "Trim Filter" in the list
-
-  Scenario: After create/delete, list re-fetch preserves active filters
-    Given I am logged in as admin
-    And I filter by "Web"
-    When I create a new program matching "Web"
-    And I delete an older program matching "Web"
-    Then the filtered list reflects the current matching programs
+    And at least one program exists
+    When I navigate to the Programs page
+    Then I see the "+ New Program" button
 
 # Ambiguities and gaps in DS-5 acceptance criteria:
 #
-# - Jira ACs cover list display and empty state only; filtering, semester panel,
-#   Manage Courses, and role-based visibility come from Confluence UI Behavior.
-# - Program Name filter availability may vary by environment — tests skip when
-#   the filter control is absent.
-# - Empty state and zero-program tests require API setup to delete all programs.
-# - Error state vs empty state on API failure is specified in Confluence but not
-#   in Jira ACs (see DS-35).
-# - Viewer read-only: edit/delete icon absence for viewer is covered in role
-#   access tests cross-referenced from Confluence Overview.
+# - Filtering: Ticket title mentions "filtering" but ACs only cover display and
+#   empty state. Whether Program Name filter is in scope for DS-5 is unclear.
+# - Sort order: Default sort (alphabetical, created date) is not specified.
+# - Pagination: Behavior when many programs exist is not defined.
+# - Archived programs: Whether archived programs appear in the list is unspecified.
+# - Description truncation: Whether long descriptions are truncated in the table
+#   with a tooltip is not specified.
+# - Role coverage: ACs specify admin; Viewer/Editor list visibility is in DS-6.

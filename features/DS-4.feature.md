@@ -5,134 +5,98 @@ Feature: DS-4 — Delete program with confirmation
 
   # Happy paths
 
-  Scenario: Admin sees native confirm dialog with program name
+  Scenario: Delete program with confirmation
     Given I am logged in as admin
-    And a program "Del Confirm" exists
-    When I click the delete icon for "Del Confirm"
-    Then I see a browser confirmation dialog
-    And the dialog message contains "Del Confirm"
-    And the dialog warns that semesters and courses will be removed
+    And I am on the Programs page
+    And a program "Test Program" exists
+    When I click the delete icon for "Test Program"
+    Then I see a confirmation dialog
+    When I confirm deletion
+    Then "Test Program" is removed from the program list
 
-  Scenario: Confirming delete removes program from the list
+  Scenario: Cancel program deletion
     Given I am logged in as admin
-    And a program "Del OK" exists
-    When I click the delete icon for "Del OK"
+    And I am on the Programs page
+    And a program "Keep Program" exists
+    When I click the delete icon for "Keep Program"
+    Then I see a confirmation dialog
+    When I click Cancel on the confirmation dialog
+    Then "Keep Program" still exists in the program list
+
+  Scenario: Program list updates immediately after confirmed deletion without manual refresh
+    Given I am logged in as admin
+    And I am on the Programs page
+    And a program "Refresh Check" exists
+    When I click the delete icon for "Refresh Check"
     And I confirm deletion
-    Then "Del OK" is removed from the program list immediately
-
-  Scenario: Cancel leaves program in the list
-    Given I am logged in as admin
-    And a program "Del Cancel" exists
-    When I click the delete icon for "Del Cancel"
-    And I dismiss the confirmation dialog
-    Then "Del Cancel" still appears in the program list
-
-  Scenario: Deleting one program does not remove others
-    Given I am logged in as admin
-    And programs "Del Target" and "Del Keep" exist
-    When I confirm deletion of "Del Target"
-    Then "Del Target" is not in the list
-    And "Del Keep" is still in the list
-
-  Scenario: List updates after delete without full page reload
-    Given I am logged in as admin
-    And a program "Del NoReload" exists
-    When I confirm deletion of "Del NoReload"
-    Then the Programs page heading remains visible
-    And "Del NoReload" is not in the list
+    Then "Refresh Check" is removed from the program list without a manual page refresh
 
   # Negative
 
-  Scenario: Editor has no usable delete control on program rows
-    Given I am logged in as editor
-    And a program "Del Editor UI" exists
-    When I navigate to the Programs page
-    Then I see "Del Editor UI" in the list
-    And there is no delete button for "Del Editor UI"
-
-  Scenario: Editor delete API is rejected
-    Given I am logged in as editor
-    And a program "Del Editor API" exists with a known UUID
-    When I send DELETE /api/programs/{uuid} as editor
-    Then the response status is 401, 403, or 405
-    And the program still appears in the list
-
-  Scenario: Viewer has no delete control
-    Given I am logged in as viewer
-    And a program "Del Viewer UI" exists
-    When I navigate to the Programs page
-    Then I see "Del Viewer UI" in the list
-    And there is no delete button for "Del Viewer UI"
-
-  Scenario: Viewer delete API is rejected
-    Given I am logged in as viewer
-    And a program "Del Viewer API" exists with a known UUID
-    When I send DELETE /api/programs/{uuid} as viewer
-    Then the response status is 401, 403, or 405
-    And the program still appears in the list
-
-  Scenario: Cancel does not trigger delete API
+  Scenario: Program is not deleted when confirmation is dismissed
     Given I am logged in as admin
-    And a program "Del NoAPI" exists
-    When I click the delete icon for "Del NoAPI"
-    And I dismiss the confirmation dialog
-    Then no DELETE request was sent
-    And "Del NoAPI" still appears in the list
+    And I am on the Programs page
+    And a program "Dismiss Check" exists
+    When I click the delete icon for "Dismiss Check"
+    And I dismiss the confirmation dialog without confirming
+    Then "Dismiss Check" still exists in the program list
 
-  Scenario: Failed delete does not remove row
+  Scenario: Other programs remain when one program is deleted
     Given I am logged in as admin
-    And a program "Del Fail" exists
-    When I confirm deletion but the server returns 500
-    Then "Del Fail" still appears in the program list
+    And I am on the Programs page
+    And programs "Alpha Program" and "Beta Program" exist
+    When I click the delete icon for "Alpha Program"
+    And I confirm deletion
+    Then "Alpha Program" is removed from the program list
+    And "Beta Program" still exists in the program list
 
-  Scenario: Row not removed before confirmed success
+  Scenario: Delete control is not available without clicking delete first
     Given I am logged in as admin
-    And a program "Del Slow" exists
-    When I confirm deletion and the API is slow to respond
-    Then the row remains visible until the delete succeeds
+    And I am on the Programs page
+    And a program "No Accidental Delete" exists
+    Then "No Accidental Delete" still exists in the program list
+    And no confirmation dialog is visible
 
   # Edge cases
 
-  Scenario: Confirm text includes special-character program name
+  Scenario: Confirmation dialog references the program being deleted
     Given I am logged in as admin
-    And a program "Test <Beta> & \"Quote\"" exists
-    When I confirm deletion
-    Then the program is removed from the list
+    And I am on the Programs page
+    And a program "Named Target" exists
+    When I click the delete icon for "Named Target"
+    Then the confirmation dialog message references "Named Target"
 
-  Scenario: Long Program Name (100 chars) appears in delete dialog
+  Scenario: Double-clicking delete shows only one confirmation dialog
     Given I am logged in as admin
-    And a program with a 100-character name exists
-    When I confirm deletion
-    Then the confirmation dialog contained the full program name
+    And I am on the Programs page
+    And a program "Double Delete" exists
+    When I double-click the delete icon for "Double Delete"
+    Then exactly one confirmation dialog is shown
 
-  Scenario: Delete last program shows empty state
+  Scenario: Program with description can be deleted successfully
     Given I am logged in as admin
-    And no programs exist in the system
-    When I navigate to the Programs page
-    Then I see the empty state message
-    And I see a "Create Program" button
+    And I am on the Programs page
+    And a program "Described Program" exists with Description "Evening cohort track"
+    When I click the delete icon for "Described Program"
+    And I confirm deletion
+    Then "Described Program" is removed from the program list
 
-  Scenario: Session expired on delete keeps program in list
+  Scenario: Deleting the last program transitions to empty state
     Given I am logged in as admin
-    And a program "Del Expired" exists
-    When I confirm deletion but the session is expired
-    Then "Del Expired" still appears in the program list
-
-  Scenario: Delete removes exactly one program by row identity
-    Given I am logged in as admin
-    And programs "Del RowA", "Del RowB", and "Del RowC" exist
-    When I confirm deletion of "Del RowB"
-    Then "Del RowA" and "Del RowC" remain visible
-    And "Del RowB" is not visible
+    And I am on the Programs page
+    And only one program "Last One" exists
+    When I click the delete icon for "Last One"
+    And I confirm deletion
+    Then I see a message indicating no programs have been created
+    And I see a prompt to create the first program
 
 # Ambiguities and gaps in DS-4 acceptance criteria:
 #
-# - Role coverage: Jira ACs specify admin only; Confluence grants delete to admin
-#   only — editor/viewer negative tests come from Confluence Overview.
-# - Error UX on failed delete: Confluence says "error displayed" but ACs do not
-#   specify toast vs inline message.
-# - Empty state after deleting last program: implied by DS-5 overlap; requires
-#   zero-program environment setup.
-# - Double-click / rapid confirm on delete: not in DS-4 ACs; idempotency covered
-#   in extended test suite.
-# - Whether archived programs affect delete confirmation text is unspecified.
+# - Confirmation UX: AC says "confirmation dialog" but does not specify native
+#   browser confirm vs custom modal, or exact copy/button labels.
+# - Role coverage: ACs specify admin only; Editor/Viewer delete denial is not
+#   in DS-4 (covered partially in DS-6).
+# - Soft delete vs hard delete: whether deleted programs are archived or
+#   permanently removed is unspecified.
+# - API failure on delete: error handling and list consistency are not defined.
+# - Undo: no requirement for undo or recovery after confirmed deletion.

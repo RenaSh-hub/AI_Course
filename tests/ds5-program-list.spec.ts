@@ -1,338 +1,151 @@
+import type { Page } from "@playwright/test";
 import { test, expect, trackProgram } from "../fixtures/cleanup.fixture";
 import { createProgram } from "../support/create-program";
+import { ensureNoPrograms, hasApiCleanupConfig } from "../support/ensure-empty-programs";
 import { ProgramsPage } from "../pages/programs.page";
 
-async function skipIfNoProgramFilter(programs: ProgramsPage) {
-  test.skip(
-    !(await programs.programNameFilter.isVisible()),
-    "Program Name filter not available in this environment",
-  );
-}
+test.describe("DS-5 — Program list filtering and display", () => {
+  async function gotoPrograms(page: Page) {
+    const programs = new ProgramsPage(page);
+    await programs.goto();
+    return programs;
+  }
 
-test.beforeEach(async ({ page }) => {
-  const programs = new ProgramsPage(page);
-  await programs.goto();
-});
+  async function resetToEmptyState(page: Page) {
+    test.skip(!(await hasApiCleanupConfig()), "Set DIDAXIS_API_TOKEN and DIDAXIS_URL in .env");
+    await ensureNoPrograms();
+    const programs = new ProgramsPage(page);
+    await programs.goto();
+    await expect(programs.emptyStateMessage).toBeVisible({ timeout: 15_000 });
+    return programs;
+  }
 
-// --- Positive flows ---
+  test("TC-001 — Display program list with key details", async ({ page }) => {
+    const programs = await gotoPrograms(page);
+    const name = `List Detail ${Date.now()}`;
+    const desc = "Shows name and description in the list.";
+    trackProgram(await createProgram(page, name, desc));
 
-test("TC-001 — Programs page shows a list with each program's name and description preview", async ({
-  page,
-}) => {
-  const ts = Date.now();
-  const name1 = `Web Development ${ts}`;
-  const desc1 = "Full-stack cohort for 2026";
-  const name2 = `Data Science ${ts}`;
-  const desc2 = "Python, stats, and ML fundamentals";
-  const programs = new ProgramsPage(page);
-
-  trackProgram(await createProgram(page, name1, desc1));
-  trackProgram(await createProgram(page, name2, desc2));
-
-  const row1 = programs.programRow(name1);
-  const row2 = programs.programRow(name2);
-
-  await expect(row1).toBeVisible();
-  await expect(programs.descriptionInRow(name1, desc1)).toBeVisible();
-  await expect(row2).toBeVisible();
-  await expect(programs.descriptionInRow(name2, desc2)).toBeVisible();
-});
-
-test("TC-002 — Programs page header and '+ New Program' button are visible for Admin", async ({
-  page,
-}) => {
-  const programs = new ProgramsPage(page);
-
-  await expect(programs.heading).toBeVisible();
-  await expect(programs.newProgramButton).toBeVisible();
-});
-
-test("TC-003 — Admin sees Edit and Delete actions on each program row", async ({
-  page,
-}) => {
-  const name = `Row Actions ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, "Action icon test"));
-
-  await expect(programs.editButtonFor(name)).toBeVisible();
-  await expect(programs.deleteButtonFor(name)).toBeVisible();
-});
-
-test("TC-006 — Program without description still appears in the list", async ({ page }) => {
-  const name = `No Desc ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name));
-
-  await expect(programs.programRow(name)).toBeVisible();
-});
-
-test("TC-007 — Sidebar Programs navigation opens the Programs page", async ({ page }) => {
-  const programs = new ProgramsPage(page);
-  await programs.nav.goToDashboard();
-  await programs.nav.goToPrograms();
-
-  await expect(page).toHaveURL(/\/programs/);
-  await expect(programs.heading).toBeVisible();
-});
-
-test("TC-004 — Clicking a program row opens the Semester Panel with semester-related content", async ({
-  page,
-}) => {
-  const name = `Semester Panel ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, "Panel test"));
-
-  await programs.selectProgram(name);
-
-  await expect(programs.semestersConfigLabel).toBeVisible();
-  await expect(programs.semesterPanelHeading(name)).toBeVisible();
-});
-
-test("TC-005 — 'Manage Courses' navigates to Course Builder from the Semester Panel", async ({
-  page,
-}) => {
-  const name = `Manage Courses ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, "Navigate to Course Builder"));
-
-  await programs.selectProgram(name);
-  await programs.goToCourseBuilder();
-
-  expect(page.url()).toMatch(/\/programs\/[^/]+\/courses/);
-});
-
-test("TC-020 — Program Name filter returns only programs whose names match the query", async ({
-  page,
-}) => {
-  const ts = Date.now();
-  const web1 = `Web Development ${ts}`;
-  const web2 = `Web Development B ${ts}`;
-  const data = `Data Science ${ts}`;
-  const programs = new ProgramsPage(page);
-
-  trackProgram(await createProgram(page, web1, "Web desc"));
-  trackProgram(await createProgram(page, web2, "Web desc B"));
-  trackProgram(await createProgram(page, data, "Data desc"));
-
-  await skipIfNoProgramFilter(programs);
-  await programs.filterByName("Web Development");
-
-  await expect(programs.programRow(web1)).toBeVisible();
-  await expect(programs.programRow(web2)).toBeVisible();
-  await expect(programs.programRow(data)).not.toBeVisible();
-});
-
-test("TC-021 — Program Name filter supports partial matching (substring)", async ({
-  page,
-}) => {
-  const name = `Informatique & IA - Niveau ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, "Partial match test"));
-
-  await skipIfNoProgramFilter(programs);
-  await programs.filterByName("Niveau");
-
-  await expect(programs.programRow(name)).toBeVisible();
-});
-
-test("TC-024 — Clearing filters restores the full unfiltered program list", async ({
-  page,
-}) => {
-  const ts = Date.now();
-  const nameA = `Filter Clear A ${ts}`;
-  const nameB = `Filter Clear B ${ts}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, nameA, "A desc"));
-  trackProgram(await createProgram(page, nameB, "B desc"));
-
-  await skipIfNoProgramFilter(programs);
-  await programs.filterByName("Filter Clear A");
-  await expect(programs.programRow(nameB)).not.toBeVisible();
-
-  await programs.clearFilter();
-
-  await expect(programs.programRow(nameA)).toBeVisible();
-  await expect(programs.programRow(nameB)).toBeVisible();
-});
-
-// --- Negative flows ---
-
-const PROGRAMS_GET = /\/api\/programs\/?$/;
-
-test("TC-008 — Programs API 500 does not show empty state", async ({ page }) => {
-  const programs = new ProgramsPage(page);
-
-  await page.route(PROGRAMS_GET, async (route) => {
-    if (route.request().method() !== "GET") {
-      await route.continue();
-      return;
-    }
-    await route.fulfill({
-      status: 500,
-      contentType: "application/json",
-      body: JSON.stringify({ message: "Internal server error" }),
-    });
+    await expect(programs.programText(name)).toBeVisible();
+    await expect(programs.descriptionInRow(name, desc)).toBeVisible();
   });
 
-  await programs.goto();
+  test("TC-002 — Program list shows name and description for a single program", async ({
+    page,
+  }) => {
+    const programs = await gotoPrograms(page);
+    const name = `Web Development 2026 ${Date.now()}`;
+    const desc = "Full-stack cohort for 2026";
+    trackProgram(await createProgram(page, name, desc));
 
-  await expect(programs.emptyStateMessage).not.toBeVisible();
-});
+    await expect(programs.programText(name)).toBeVisible();
+    await expect(programs.descriptionInRow(name, desc)).toBeVisible();
+  });
 
-test("TC-012 — Clicking a program row must not navigate away unexpectedly", async ({
-  page,
-}) => {
-  const name = `No Navigate ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, "Stay on page test"));
+  test("TC-003 — Program list shows multiple programs with distinct names and descriptions", async ({
+    page,
+  }) => {
+    const programs = await gotoPrograms(page);
+    const nameA = `Data Science 2026 ${Date.now()}`;
+    const descA = "ML fundamentals track";
+    const nameB = `UX Design 2026 ${Date.now()}`;
+    const descB = "Human-centered design bootcamp";
 
-  await programs.selectProgram(name);
+    trackProgram(await createProgram(page, nameA, descA));
+    trackProgram(await createProgram(page, nameB, descB));
 
-  expect(page.url()).toContain("/programs");
-});
+    await expect(programs.programText(nameA)).toBeVisible();
+    await expect(programs.descriptionInRow(nameA, descA)).toBeVisible();
+    await expect(programs.programText(nameB)).toBeVisible();
+    await expect(programs.descriptionInRow(nameB, descB)).toBeVisible();
+  });
 
-test("TC-013 — Manage Courses is not available if no program is selected", async ({
-  page,
-}) => {
-  const programs = new ProgramsPage(page);
-  const manageCourses = programs.manageCoursesButton;
-  const count = await manageCourses.count();
+  test("TC-004 — Programs page heading and table structure are visible", async ({ page }) => {
+    const programs = await gotoPrograms(page);
+    const name = `Structure Check ${Date.now()}`;
+    trackProgram(await createProgram(page, name));
 
-  if (count > 0) {
-    await expect(manageCourses).toBeDisabled();
-  } else {
-    expect(count).toBe(0);
-  }
-});
+    await expect(programs.heading).toBeVisible();
+    await expect(programs.programColumnHeader).toBeVisible();
+  });
 
-test("TC-025 — No results state is shown when filters match zero programs", async ({
-  page,
-}) => {
-  const programs = new ProgramsPage(page);
+  test("TC-005 — Empty state when no programs exist", async ({ page }) => {
+    const programs = await resetToEmptyState(page);
 
-  await skipIfNoProgramFilter(programs);
-  await programs.filterByName(`Nonexistent Program ${Date.now()}`);
+    await expect(programs.emptyStateMessage).toBeVisible();
+    await expect(programs.createProgramEmptyButton).toBeVisible();
+  });
 
-  await expect(programs.dataRowsExcludingFilterHeader()).toHaveCount(0);
-});
+  test("TC-006 — Empty state Create Program button opens New Program modal", async ({
+    page,
+  }) => {
+    const programs = await resetToEmptyState(page);
 
-// --- Edge cases ---
+    await programs.createProgramEmptyButton.click();
+    const modal = programs.newProgramModal;
+    await expect(modal.dialog).toBeVisible();
+    await expect(modal.heading).toBeVisible();
+    await modal.cancelButton.click();
+  });
 
-test("TC-014 — Empty state renders correct icon, message, and 'Create Program' button when no programs exist", async ({
-  page,
-}) => {
-  test.skip(
-    !(process.env.DIDAXIS_API_TOKEN && process.env.DIDAXIS_URL),
-    "Covered by ds7-empty-state.spec.ts — requires DIDAXIS_API_TOKEN",
-  );
-});
+  test("TC-007 — Empty state is not shown when programs exist", async ({ page }) => {
+    const programs = await gotoPrograms(page);
+    const name = `Visible Program ${Date.now()}`;
+    trackProgram(await createProgram(page, name));
 
-test("TC-016 — Description preview handles very long descriptions without breaking layout", async ({
-  page,
-}) => {
-  const name = `Long Desc ${Date.now()}`;
-  const longDesc = "L".repeat(500);
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, longDesc));
+    await expect(programs.emptyStateMessage).not.toBeVisible();
+    await expect(programs.programText(name)).toBeVisible();
+  });
 
-  const row = programs.programRow(name);
-  await expect(row).toBeVisible();
+  test("TC-008 — Program without description still appears in list", async ({ page }) => {
+    const programs = await gotoPrograms(page);
+    const name = `No Desc Program ${Date.now()}`;
+    trackProgram(await createProgram(page, name, ""));
 
-  const rowBox = await row.boundingBox();
-  expect(rowBox).not.toBeNull();
-  expect(rowBox!.height).toBeLessThan(200);
-});
+    await expect(programs.programText(name)).toBeVisible();
+  });
 
-test("TC-017 — Program Name with special characters displays correctly in the list", async ({
-  page,
-}) => {
-  const name = `Informatique & IA - Niveau ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, "Special char display test"));
+  test("TC-009 — Program name with special characters displays correctly in list", async ({
+    page,
+  }) => {
+    const programs = await gotoPrograms(page);
+    const name = `Informatique & IA - Niveau 2 ${Date.now()}`;
+    const desc = 'A & B <tag> "quotes"';
+    trackProgram(await createProgram(page, name, desc));
 
-  await expect(programs.programRow(name)).toBeVisible();
-});
+    await expect(programs.programText(name)).toBeVisible();
+    await expect(programs.descriptionInRow(name, desc)).toBeVisible();
+  });
 
-test("TC-018 — Switching selection updates Semester Panel to the newly selected program", async ({
-  page,
-}) => {
-  const ts = Date.now();
-  const name1 = `Panel Switch A ${ts}`;
-  const name2 = `Panel Switch B ${ts}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name1, "First program"));
-  trackProgram(await createProgram(page, name2, "Second program"));
+  test("TC-010 — Long description up to 500 characters displays in list row", async ({
+    page,
+  }) => {
+    const programs = await gotoPrograms(page);
+    const name = `Long Desc Program ${Date.now()}`;
+    const desc = "L".repeat(500);
+    trackProgram(await createProgram(page, name, desc));
 
-  await programs.selectProgram(name1);
-  const panelContent1 = await programs.semesterPanelHeading(name1).textContent();
+    await expect(programs.programText(name)).toBeVisible();
+    await expect(programs.descriptionInRow(name, desc)).toBeVisible();
+  });
 
-  await programs.selectProgram(name2);
-  const panelContent2 = await programs.semesterPanelHeading(name2).textContent();
+  test("TC-011 — Program list persists after page reload", async ({ page }) => {
+    const programs = await gotoPrograms(page);
+    const name = `Persist Check ${Date.now()}`;
+    const desc = "Survives reload";
+    trackProgram(await createProgram(page, name, desc));
 
-  expect(panelContent2).not.toBe(panelContent1);
-});
+    await programs.reload();
 
-test("TC-019 — Row click still works after list re-fetch following a mutation", async ({
-  page,
-}) => {
-  const ts = Date.now();
-  const nameA = `Post Mutation A ${ts}`;
-  const nameB = `Post Mutation B ${ts}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, nameA, "Mutation click test A"));
-  trackProgram(await createProgram(page, nameB, "Mutation click test B"));
+    await expect(programs.programText(name)).toBeVisible();
+    await expect(programs.descriptionInRow(name, desc)).toBeVisible();
+  });
 
-  await programs.deleteProgram(nameA);
+  test("TC-012 — New Program button is available when programs exist", async ({ page }) => {
+    const programs = await gotoPrograms(page);
+    const name = `New Btn Check ${Date.now()}`;
+    trackProgram(await createProgram(page, name));
 
-  await programs.selectProgram(nameB);
-
-  await expect(programs.semestersConfigLabel).toBeVisible();
-  await expect(programs.semesterPanelHeading(nameB)).toBeVisible();
-});
-
-test("TC-027 — Program Name filter trims leading/trailing spaces in the query", async ({
-  page,
-}) => {
-  const name = `Trim Filter ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, "Trim test"));
-
-  await skipIfNoProgramFilter(programs);
-  await programs.filterByName(`  ${name}  `);
-
-  await expect(programs.programRow(name)).toBeVisible();
-});
-
-test("TC-028 — Program Name filter handles special characters safely", async ({
-  page,
-}) => {
-  const name = `Informatique & IA - Niveau ${Date.now()}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, name, "Filter special chars"));
-
-  await skipIfNoProgramFilter(programs);
-  await programs.filterByName("& IA -");
-
-  await expect(programs.programRow(name)).toBeVisible();
-});
-
-test("TC-029 — After create/delete, list re-fetch preserves active filters and updates results accordingly", async ({
-  page,
-}) => {
-  const ts = Date.now();
-  const web1 = `Web Alpha ${ts}`;
-  const web2 = `Web Security ${ts}`;
-  const programs = new ProgramsPage(page);
-  trackProgram(await createProgram(page, web1, "First web program"));
-
-  await skipIfNoProgramFilter(programs);
-  await programs.filterByName("Web");
-  await expect(programs.programRow(web1)).toBeVisible();
-
-  trackProgram(await createProgram(page, web2, "New web program"));
-  await expect(programs.programRow(web2)).toBeVisible();
-
-  await programs.deleteProgram(web1);
-  await expect(programs.programRow(web1)).not.toBeVisible();
-  await expect(programs.programRow(web2)).toBeVisible();
+    await expect(programs.newProgramButton).toBeVisible();
+  });
 });
