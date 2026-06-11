@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { test as setup } from '@playwright/test';
+import { expect, test as setup } from '@playwright/test';
+import { DashboardPage } from '../pages/dashboard.page.js';
 import { LoginPage } from '../pages/login.page.js';
 import { AUTH_FILE } from '../support/auth.constants';
 
@@ -14,6 +15,7 @@ setup('authenticate', async ({ page }) => {
 
   const login = new LoginPage(page);
   await login.login(email, password);
+  await expect(new DashboardPage(page).heading).toBeVisible();
 
   await mkdir(dirname(AUTH_FILE), { recursive: true });
   await page.context().storageState({ path: AUTH_FILE });

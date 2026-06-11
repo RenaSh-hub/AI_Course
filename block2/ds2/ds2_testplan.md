@@ -143,7 +143,7 @@ Playwright MCP snapshot of `/login` confirms **Email**, **Password**, **Sign In*
 | TC-014 | No | Yes |
 | TC-015, TC-030 | No (need route mock / session control) | No |
 | TC-016, TC-017 | Retired from ds2N Admin-only plan | — |
-| TC-018 | No (see `ds4-delete-program`) | No |
+| TC-018 | No (delete flow; separate ticket) | No |
 | TC-019 | Yes (X + Cancel; X uses fragile locator) | Cancel only |
 | TC-020 | No | No (debounce hard to assert without hooks) |
 | TC-021 | No | Yes |
