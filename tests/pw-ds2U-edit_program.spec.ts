@@ -344,9 +344,13 @@ test.describe("PW-DS2U — Edit Program", () => {
       const modal = programs.editProgramModal;
       await expect(modal.dialog).toBeVisible();
       await modal.programNameInput.fill(b.toUpperCase());
-      await page.waitForTimeout(600);
-
-      await expect(modal.duplicateNameError()).toHaveCount(0);
+      await expect(modal.programNameInput).toHaveValue(b.toUpperCase());
+      await expect
+        .poll(async () => modal.duplicateNameError().count(), {
+          timeout: 2_000,
+          intervals: [600],
+        })
+        .toBe(0);
     });
 
     test("TC-013 — Whitespace-only Program Name does not save", async ({ page }) => {

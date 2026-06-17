@@ -34,7 +34,7 @@ export default defineConfig({
       testMatch:
         /ds7-empty-state\.spec\.ts|ds4-delete-program\.spec\.ts|ds5-program-list\.spec\.ts/,
       grep:
-        /TC-010 — Deleting the last program transitions to empty state|TC-005 — Empty state when no programs exist|TC-006 — Empty state Create Program button opens New Program modal|Empty state shows message and Create Program button|Empty state Create Program button opens New Program modal|Deleting the last program shows empty state/,
+        /TC-010 — Deleting the last program transitions to empty state|Empty state shows message and Create Program button|Empty state Create Program button opens New Program modal|Deleting the last program shows empty state|TC-005 — Empty state when no programs exist|TC-006 — Empty state Create Program button opens New Program modal/,
       fullyParallel: false,
       use: {
         ...devices["Desktop Chrome"],
@@ -46,7 +46,7 @@ export default defineConfig({
       name: "chromium",
       testIgnore: /login\.specs\.ts|ds7-empty-state\.spec\.ts/,
       grepInvert:
-        /TC-010 — Deleting the last program transitions to empty state|TC-005 — Empty state when no programs exist|TC-006 — Empty state Create Program button opens New Program modal|Empty state shows message and Create Program button|Empty state Create Program button opens New Program modal|Deleting the last program shows empty state/,
+        /TC-010 — Deleting the last program transitions to empty state|Empty state shows message and Create Program button|Empty state Create Program button opens New Program modal|Deleting the last program shows empty state|TC-005 — Empty state when no programs exist|TC-006 — Empty state Create Program button opens New Program modal/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: AUTH_FILE,

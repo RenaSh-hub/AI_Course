@@ -104,3 +104,5 @@ Feature: DS-5 — Program list filtering and display
 # - Description truncation: Whether long descriptions are truncated in the table
 #   with a tooltip is not specified.
 # - Role coverage: ACs specify admin; Viewer/Editor list visibility is in DS-6.
+# - Overlap with DS-7: Empty-state modal flow is also covered by DS-7; both
+#   tickets assert the same UI but from different story contexts.

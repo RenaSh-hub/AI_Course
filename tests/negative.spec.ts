@@ -28,9 +28,9 @@ test.describe("Negative flows", () => {
 
     const todoItem = page.getByTestId("todo-item");
     await todoItem.hover();
-    await todoItem.locator("button.destroy").click();
+    await todoItem.getByRole("button").click();
 
-    await expect(page.locator(".footer")).toBeHidden();
+    await expect(page.getByRole("link", { name: "All" })).toBeHidden();
     await expect(page.getByLabel("Mark all as complete")).toBeHidden();
   });
 
