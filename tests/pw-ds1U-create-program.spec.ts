@@ -181,6 +181,38 @@ test.describe("PW-DS1U — Create Program", () => {
       await expect(programs.programRow(paddedName.trim())).toHaveCount(1);
     });
 
+    test("TC-009 — Program name with only whitespace is treated as empty", async ({
+      page,
+    }) => {
+      const programs = new ProgramsPage(page);
+
+      await programs.openNewProgram();
+      const modal = programs.newProgramModal;
+      await expect(modal.dialog).toBeVisible();
+      await modal.programNameInput.fill("   ");
+      await modal.descriptionInput.fill("Full-stack web development program");
+
+      await expect(modal.createButton).toBeDisabled();
+    });
+
+    test("TC-010 — Program name with special characters is accepted", async ({
+      page,
+    }) => {
+      const programName = `PW1U Informatique & IA - Niveau ${Date.now()}`;
+      const description = "Bilingual STEM program";
+      const programs = new ProgramsPage(page);
+
+      await programs.openNewProgram();
+      const modal = programs.newProgramModal;
+      await expect(modal.dialog).toBeVisible();
+      await modal.programNameInput.fill(programName);
+      await modal.descriptionInput.fill(description);
+      trackProgram(await submitCreateAndTrack(page, modal));
+
+      await expect(modal.dialog).not.toBeVisible();
+      await expect(programs.programRow(programName)).toBeVisible();
+    });
+
     test("TC-020 — Optional AI Generation Config is available on create form", async ({
       page,
     }) => {
