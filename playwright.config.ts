@@ -1,8 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
+import path from "path";
 import { AUTH_FILE, EMPTY_STORAGE_STATE } from "./support/auth.constants";
 
 dotenv.config();
+dotenv.config({
+  path: path.join(__dirname, ".cursor/automation.env"),
+  override: false,
+});
 
 const isCI = !!process.env.CI;
 

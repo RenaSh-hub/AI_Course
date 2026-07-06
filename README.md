@@ -2,12 +2,14 @@
 
 Monorepo for Didaxis Studio Playwright automation and Cursor agent skills.
 
+Cloud Agents and scheduled automations: see [AGENTS.md](AGENTS.md).
+
 ## Structure
 
 - `tests/` — Playwright specs
 - `support/` — helpers, global setup/teardown, and cleanup tooling
 - `fixtures/` — shared test fixtures (e.g. program cleanup)
-- `.agents/skills/` — Cursor skills (Jira, API cleanup, program deleter)
+- `.cursor/skills/` — Cursor skills (Jira, API cleanup, program deleter, exploration)
 
 ## Setup
 

@@ -2,6 +2,7 @@ import type { Locator, Page } from '@playwright/test';
 import { AppNavigation } from './components/app-navigation.js';
 import { EditProgramModal } from './components/edit-program.modal.js';
 import { NewProgramModal } from './components/new-program.modal.js';
+import { NewSemesterModal } from './components/new-semester.modal.js';
 
 export class ProgramsPage {
   readonly path = '/programs';
@@ -19,6 +20,7 @@ export class ProgramsPage {
   readonly semestersConfigLabel: Locator;
   readonly newProgramModal: NewProgramModal;
   readonly editProgramModal: EditProgramModal;
+  readonly newSemesterModal: NewSemesterModal;
   readonly nav: AppNavigation;
 
   constructor(private readonly page: Page) {
@@ -40,6 +42,7 @@ export class ProgramsPage {
     this.semestersConfigLabel = page.getByText('Semesters & scheduling config');
     this.newProgramModal = new NewProgramModal(page);
     this.editProgramModal = new EditProgramModal(page);
+    this.newSemesterModal = new NewSemesterModal(page);
     this.nav = new AppNavigation(page);
   }
 
@@ -94,7 +97,19 @@ export class ProgramsPage {
   }
 
   async selectProgram(name: string) {
-    await this.programRow(name).click();
+    await this.programText(name).click();
+  }
+
+  semesterName(name: string) {
+    return this.page.getByText(name, { exact: true });
+  }
+
+  semesterDateRange(startDate: string, endDate: string) {
+    return this.page.getByText(`${startDate} — ${endDate}`);
+  }
+
+  async openNewSemester() {
+    await this.newSemesterButton.click();
   }
 
   async deleteProgram(name: string) {
