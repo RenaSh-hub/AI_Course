@@ -1,0 +1,129 @@
+name: Test Generation
+
+on:
+  schedule:
+    # 19:00 EDT daily (23:00 UTC; EDT = UTC-4). During EST runs at 18:00 local.
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: test-generation
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    name: Generate Playwright tests from backlog
+    runs-on: ubuntu-latest
+    environment: dev1
+    timeout-minutes: 120
+    env:
+      CI: true
+      DIDAXIS_URL: ${{ secrets.DIDAXIS_URL }}
+      DIDAXIS_EMAIL: ${{ secrets.DIDAXIS_EMAIL }}
+      DIDAXIS_PASSWORD: ${{ secrets.DIDAXIS_PASSWORD }}
+      DIDAXIS_API_TOKEN: ${{ secrets.DIDAXIS_API_TOKEN }}
+      ATLASSIAN_BASE_URL: ${{ secrets.ATLASSIAN_BASE_URL }}
+      ATLASSIAN_EMAIL: ${{ secrets.ATLASSIAN_EMAIL }}
+      ATLASSIAN_API_TOKEN: ${{ secrets.ATLASSIAN_API_TOKEN }}
+      JIRA_PROJECT_KEY: DS
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Cursor CLI
+        run: |
+          curl https://cursor.com/install -fsS | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate tests from In Progress backlog
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          CURSOR_GH_MCP: ${{ secrets.CURSOR_GH_MCP }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          agent -p --force --trust --output-format text "$(cat <<'EOF'
+          You are the outer runner for Backlog mode in this Playwright repository.
+          Follow .cursor/rules/qa-orchestrator.mdc and AGENTS.md exactly.
+
+          ## Queue (outer runner — you query Jira; do not skip tickets without the label filter)
+
+          Query Jira REST API (ATLASSIAN_BASE_URL, ATLASSIAN_EMAIL, ATLASSIAN_API_TOKEN):
+            project = DS AND status = "In Progress" AND labels != tests-generated
+            ORDER BY updated ASC
+
+          If the queue is empty, exit with no file changes.
+
+          Budget: process at most 5 tickets this run. Never exceed the budget.
+
+          ## Per-ticket pipeline (each ticket, in order)
+
+          1. **Analyze** — jira-ticket-analyzer skill; save Gherkin plan to features/{ticket_key}
+          2. **Test-writer** — spec under tests/ + POM updates under pages/ only
+             - .cursor/rules/playwright-conventions.mdc
+             - pom-conventions skill, api-cleanup skill
+             - Do not modify application source outside tests/ and pages/
+          3. **Run** — npm run test:ci -- tests/<spec-path> --project=chromium
+          4. **Triage on red** — ci-failure-triage skill
+             - Real app bug → jira-bug-reporter skill (document only; human approves filing)
+             - Test issue → fix spec/POM and rerun
+             - Same spec fails with the same error twice → stop that ticket (see stop conditions)
+          5. **Output** (when spec is green, or test.fail() documents a known defect with passing suite)
+             - One ticket-scoped branch (e.g. qa/ds{N}-{slug})
+             - Commit and push
+             - Open ONE **DRAFT** PR via gh (ticket key in branch, commits, title, body; Jira Relates link)
+             - Add label **tests-generated** on the **Jira ticket** via REST API (not on the PR)
+
+          ## Automation carve-out (authorized without per-ticket human approval)
+
+          - Push branch and open DRAFT PR per ticket
+          - Add tests-generated on the Jira ticket after PR is opened
+
+          ## Guardrails (never violate)
+
+          - Never merge, close, transition a Jira ticket, or mark a PR ready for review
+          - One DRAFT PR per ticket
+          - Stop on repeated identical failure: document blocker in draft PR body or Jira comment;
+            leave draft PR open; do NOT add tests-generated; move to next ticket
+          - Triage can't classify → stop the run and escalate
+          - At most 3 delegations / retries per ticket; never rerun an identical failing spec more than twice
+          EOF
+          )"
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test results (traces)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 30
