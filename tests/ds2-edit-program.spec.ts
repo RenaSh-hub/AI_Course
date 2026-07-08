@@ -2,7 +2,7 @@ import { test, expect, trackProgram } from "../fixtures/cleanup.fixture";
 import { createProgram } from "../support/create-program";
 import { ProgramsPage } from "../pages/programs.page";
 
-test.describe("PW-DS2U — Edit Program", () => {
+test.describe("DS-2 — Edit existing program details", () => {
   test.beforeEach(async ({ page }) => {
     await new ProgramsPage(page).goto();
   });
