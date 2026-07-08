@@ -68,7 +68,7 @@ Auth is handled by the `setup` project and `support/global-setup.ts`; specs depe
 
 When running as the scheduled backlog outer runner (GitHub Actions `test-generation.yml` or Cursor Cloud Automation), follow `.cursor/rules/qa-orchestrator.mdc` (Backlog mode + Automation carve-out):
 
-- **GHA outer runner:** `.github/workflows/test-generation.yml` — daily 22:00 EDT + manual dispatch
+- **GHA outer runner:** `.github/workflows/test-generation.yml` — daily 19:15 EDT + manual dispatch
 - Query Jira: `project = DS AND status = "In Progress" AND labels != tests-generated`
 - Budget: up to **5 tickets** per run
 - Per ticket: analyze → write spec/POM → `npm run test:ci` → triage on red
