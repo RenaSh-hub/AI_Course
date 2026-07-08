@@ -2,8 +2,8 @@ name: Test Generation
 
 on:
   schedule:
-    # 19:00 EDT daily (23:00 UTC; EDT = UTC-4). During EST runs at 18:00 local.
-    - cron: '0 23 * * *'
+    # 22:00 EDT daily (02:00 UTC; EDT = UTC-4). During EST runs at 21:00 local.
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 concurrency:
