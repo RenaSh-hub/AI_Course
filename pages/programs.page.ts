@@ -77,7 +77,7 @@ export class ProgramsPage {
   }
 
   editButtonFor(programName: string) {
-    return this.page.getByRole('button', { name: `Edit ${programName}` });
+    return this.page.getByRole('button', { name: `Modify ${programName}` });
   }
 
   deleteButtonFor(programName: string) {

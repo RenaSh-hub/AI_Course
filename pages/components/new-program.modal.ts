@@ -20,7 +20,7 @@ export class NewProgramModal {
 
   constructor(private readonly page: Page) {
     this.dialog = page.getByRole('dialog', { name: 'New Program' });
-    this.heading = this.dialog.getByRole('heading', { name: 'New Program' });
+    this.heading = this.dialog.getByRole('heading', { name: 'Create New Program' });
     this.programNameInput = this.dialog.getByRole('textbox', { name: 'Program Name' });
     this.descriptionInput = this.dialog.getByRole('textbox', { name: 'Description' });
     this.cancelButton = this.dialog.getByRole('button', { name: 'Cancel' });
