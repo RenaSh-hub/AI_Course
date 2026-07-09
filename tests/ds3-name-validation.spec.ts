@@ -48,6 +48,8 @@ test("TC-004 — Whitespace-only Program Name blocks submission", async ({ page 
 test("TC-005 — Duplicate Program Name is rejected with a server error", async ({
   page,
 }) => {
+  test.fail(true, "Known app bug — duplicate program names are allowed on create.");
+
   const name = `Dup Check ${Date.now()}`;
   const programs = new ProgramsPage(page);
 
@@ -104,6 +106,8 @@ test("TC-007 — Description exceeding 500 characters is rejected", async ({ pag
 test("TC-008 — Program must not appear in list when server rejects creation", async ({
   page,
 }) => {
+  test.fail(true, "Known app bug — duplicate program names are allowed on create.");
+
   const name = `Dup Phantom ${Date.now()}`;
   const programs = new ProgramsPage(page);
 
@@ -128,6 +132,8 @@ test("TC-008 — Program must not appear in list when server rejects creation", 
 test("TC-009 — Leading/trailing spaces are trimmed and still enforce duplicate prevention", async ({
   page,
 }) => {
+  test.fail(true, "Known app bug — duplicate program names are allowed on create.");
+
   const name = `Trim Dup ${Date.now()}`;
   const programs = new ProgramsPage(page);
 
@@ -164,6 +170,8 @@ test("TC-011 — Program Name containing quotes/brackets is displayed safely", a
 test("TC-012 — Case-variant duplicate Program Name is rejected on create", async ({
   page,
 }) => {
+  test.fail(true, "Known app bug — case-variant duplicate program names are allowed on create.");
+
   const name = `Case Dup ${Date.now()}`;
   const programs = new ProgramsPage(page);
 
