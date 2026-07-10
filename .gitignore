@@ -36,4 +36,6 @@ Thumbs.db
 coverage/
 
 # --- Cursor local state (if present under this tree) ---
-.cursor/
+.cursor/*
+!.cursor/automations/
+!.cursor/automations/**

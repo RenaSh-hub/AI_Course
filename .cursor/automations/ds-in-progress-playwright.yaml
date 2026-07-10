@@ -1,0 +1,42 @@
+# Cursor Automation — DS In-Progress Playwright Generator
+# Import at cursor.com/automations or sync manually.
+# Prompt source of truth: .github/prompts/cursor-automations/ds-in-progress-playwright.prompt.md
+
+name: DS In-Progress Playwright Generator
+enabled: true
+
+repository:
+  owner: RenaSh-hub
+  name: AI_Course
+  branch: main
+
+triggers:
+  - type: scheduled
+    cron: "50 17 * * 1-5"
+    timezone: America/New_York
+    description: Weekday evenings at 17:50 US Eastern
+
+  - type: webhook
+    description: >-
+      Jira "Issue transitioned → In Progress" (configure in Jira Automation).
+      See .github/prompts/cursor-automations/README.md.
+
+tools:
+  - terminal
+  - mcp_atlassian
+  - mcp_github
+  - open_pull_request
+  - memories
+
+constraints:
+  budget_tickets_per_run: 5
+  never_merge: true
+  branch_prefix: cursor/ds-
+  jira_label_on_complete: tests-generated
+
+prompt_file: .github/prompts/cursor-automations/ds-in-progress-playwright.prompt.md
+
+sandbox:
+  install_command: npm ci && npx playwright install --with-deps chromium
+  env:
+    CI: "true"
