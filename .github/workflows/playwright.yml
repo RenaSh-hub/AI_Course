@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev1
     env:
+      CI: true
       DIDAXIS_URL: ${{ secrets.DIDAXIS_URL }}
       DIDAXIS_EMAIL: ${{ secrets.DIDAXIS_EMAIL }}
       DIDAXIS_PASSWORD: ${{ secrets.DIDAXIS_PASSWORD }}
