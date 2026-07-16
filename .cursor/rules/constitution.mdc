@@ -1,0 +1,80 @@
+---
+description: Always-on constitution for this Playwright QA project — non-negotiable MUST/SHOULD/WON'T standards plus a skills/agents index.
+alwaysApply: true
+---
+
+# Constitution
+
+Non-negotiable standards for Playwright work in this repo. Details live in `playwright-conventions.mdc` and skills; this file is the short always-on check.
+
+## MUST
+
+| Rule | Meaning |
+|------|---------|
+| Role-based locators | `getByRole` / label / text first; testid escape hatch only |
+| Web-first assertions | Assert on UI state; Playwright auto-waits — no manual sleeps for readiness |
+| `storageState` auth | Login via setup project + `playwright/.auth/user.json`; no per-test UI login |
+| Unique self-cleaning data | Unique names per run; every create tears down (see `api-cleanup`) |
+| One tag per test | Exactly one of `@smoke` `@sanity` `@regression` `@api` `@e2e` `@destructive` on each `test(...)`; never on `describe` |
+| Revert shared mutations | Any test that changes locale/roles/flags/settings restores via `afterEach`/`afterAll` |
+| Suite eval before done | Apply `eval-report` skill; update `docs/eval-report.md` before closing a QA task |
+
+## SHOULD
+
+| Rule | Meaning |
+|------|---------|
+| Faker factories | Happy-path data from `test-data/factories` (Faker); curated invalid in static `.ts` |
+| Enums for repeated strings | Shared paths/messages → enums/constants under `test-data/` or `support/` |
+| JSDoc on action methods | Document POM action methods (purpose, params, notable waits/side effects) |
+
+## WON'T
+
+| Rule | Meaning |
+|------|---------|
+| XPath | No `//…` locators |
+| `waitForTimeout` | No fixed sleeps |
+| Hardcoded secrets | Env / secrets only — never commit credentials |
+| `any` | No TypeScript `any` in tests or POMs |
+| Weakened assertions | Don't dilute expects to make a red test green |
+| Healing a real bug | Real app defects → file a bug; never "fix" the test around them |
+| Tags on `describe` | Tags belong on individual tests only |
+| Misuse `@destructive` | Not for own-data CRUD that cleans up; only shared/global state mutations |
+
+## Agent governance
+
+Behavioral only — **not** hook-enforced. Audit, then edit.
+
+### Audit-then-edit
+
+1. Read the relevant rules/skills, ticket/AC, and existing code **before** changing files.
+2. For every **non-trivial** task, emit a **Proposal** block **before** the first edit:
+
+```markdown
+### Proposal
+- **Scope:** …
+- **Confidence:** N/10
+- **Rationale:** …
+- **Unknowns:** … (or none)
+```
+
+Trivial = typo, comment, or a single-line fix the user already specified exactly. Everything else needs a Proposal.
+
+### Confidence gate
+
+| Confidence | Action |
+|------------|--------|
+| Below 5 | **Do not proceed.** Ask for the missing input. |
+| 5–7 | Proceed only with **explicit Unknowns** listed and **human approval**. |
+| 8 or above | Proceed with the Proposal. |
+
+### Never invent
+
+Do **not** invent a path, enum, env var, credential, or user-facing message. **Ask** the user or **explore** the repo/UI (read, MCP, existing factories/enums) instead.
+
+## Index
+
+**Skills** — `api-cleanup` (teardown created data) · `ci-failure-triage` (classify red CI) · `didaxis-program-deleter` (bulk API delete) · `eval-report` (suite reliability metrics → `docs/eval-report.md`) · `explore-and-generate` (coverage gaps, no ticket) · `exploratory-charter` (feature + risk → charter/findings format) · `jira-bug-reporter` (file DS bugs) · `jira-ticket-analyzer` (ticket → Gherkin) · `pom-conventions` (locators in POMs) · `self-heal` (locator drift only)
+
+**Agents** — `test-writer` (plan → spec) · `triage` (red run → bug vs test issue) · `bug-reporter` (confirmed defect → Jira)
+
+**Rules** — `playwright-conventions` (full standards) · `qa-orchestrator` (delegate end-to-end / backlog)

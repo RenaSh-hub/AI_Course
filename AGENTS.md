@@ -2,6 +2,8 @@
 
 Guidance for Cursor Cloud Agents and scheduled automations working in this repo.
 
+Behavioral governance (audit-then-edit, confidence gate, never invent paths/enums/env/messages) lives in [`.cursor/rules/constitution.mdc`](.cursor/rules/constitution.mdc) → **Agent governance**.
+
 ## Cursor Cloud
 
 ### Environment
@@ -76,3 +78,7 @@ When running as the scheduled backlog outer runner (GitHub Actions `test-generat
 - **Never** merge, close, transition a ticket, or mark a PR ready for review
 
 If the Jira queue is empty, exit without making changes.
+
+### Suite reliability eval (mandatory)
+
+Before treating a backlog or ticket run as done, apply `.cursor/skills/eval-report` and refresh [`docs/eval-report.md`](docs/eval-report.md) (see qa-orchestrator → **Mandatory: suite reliability eval**). Measure from CI/PR/session evidence only — Cursor has no built-in telemetry for flake, heal, generation-gate, or ask-vs-guess.

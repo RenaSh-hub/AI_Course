@@ -5,7 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:ci": "playwright test"
+    "test:ci": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:sanity": "playwright test --grep @sanity",
+    "test:regression": "playwright test --grep @regression",
+    "test:api": "playwright test --grep @api",
+    "test:e2e": "playwright test --grep @e2e",
+    "test:destructive": "playwright test --grep @destructive --workers=1"
   },
   "repository": {
     "type": "git",
@@ -25,6 +31,7 @@
     "tsx": "^4.21.0"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.5.0",
     "dotenv": "^17.4.2"
   }
 }

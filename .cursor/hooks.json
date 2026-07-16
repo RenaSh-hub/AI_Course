@@ -3,8 +3,8 @@
   "hooks": {
     "afterFileEdit": [
       {
-        "command": "node .cursor/hooks/block-weakened-assertions.mjs",
-        "matcher": "tests/**",
+        "command": "node .cursor/hooks/block-wont-violations.mjs",
+        "matcher": "Write",
         "failClosed": true
       }
     ]
