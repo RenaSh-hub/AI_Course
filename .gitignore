@@ -39,3 +39,6 @@ coverage/
 .cursor/*
 !.cursor/automations/
 !.cursor/automations/**
+!.cursor/hooks.json
+!.cursor/hooks/
+!.cursor/hooks/**
