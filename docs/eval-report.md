@@ -1,18 +1,32 @@
 # Suite reliability eval
 
-**Window:** last **10** completed `playwright.yml` runs on `RenaSh-hub/AI_Course` (sampled 2026-07-08 → 2026-07-16; cancelled runs excluded).  
+**Window:** last **10** completed non-cancelled `playwright.yml` runs on `RenaSh-hub/AI_Course` (sampled 2026-07-08 → 2026-07-16; cancelled runs excluded).  
+**Session:** Backlog outer runner 2026-07-21 — processed DS-3 (local `npm run test:ci -- tests/ds3-name-validation.spec.ts --project=chromium` → **13 passed**).  
 **Note:** Cursor has **no built-in telemetry** for these metrics. Numbers below come from CI logs, PR history, and session review — regenerate by re-measuring; do not invent.
 
 | Metric | Value | How measured | What it tells us |
 |--------|-------|--------------|------------------|
-| Flake rate | **11 / 1 324 ≈ 0.8%** (11 flaky results across 10 runs) | Playwright summary lines in CI logs (`N flaky`); flaky = passed only on retry. Totals: 1 260 passed + 53 failed + 11 flaky. | Retries are masking a small but real instability (empty-state / delete / name-validation), not a green suite. |
-| Heal success rate | **2 / 2** clean; **masked-regression = 0** | Heal PRs [#9](https://github.com/RenaSh-hub/AI_Course/pull/9), [#10](https://github.com/RenaSh-hub/AI_Course/pull/10): POM-only diffs, no `expect` changes in specs; triage classified drift. Masked-regression count = assertion weakenings or spec edits in heal PRs (must stay **0**). | Self-heal is doing the right thing when invoked; it is not hiding product bugs via weaker asserts. |
-| Generation-gate pass rate | **0 / 5 (0%)** on first PR | Generated/coverage PRs [#5](https://github.com/RenaSh-hub/AI_Course/pull/5)–[#8](https://github.com/RenaSh-hub/AI_Course/pull/8), [#11](https://github.com/RenaSh-hub/AI_Course/pull/11): required check `Run Playwright tests` was **FAILURE** on first status. Gate = green + conventions-conforming + maps-to-AC. | Specs are merging/opening red; generation is not yet a reliable first-PR gate. |
-| Ask-vs-guess | **Ask ≈ 0 · Guess ≈ n/a (unlogged)** | Manual review of recent agent sessions — Cursor does not record ask/guess. No structured log of “asked user” vs “invented value” exists yet. | We cannot steer agents toward ask-first until we start logging it; treat inventing AC/values as a process gap. |
+| Flake rate | **10 / 1 308 ≈ 0.8%** (10 flaky results across 10 runs) | Playwright summary lines in `gh run view --log` (`N flaky`); flaky = passed only on retry. Totals: 1 243 passed + 55 failed + 10 flaky. Run `29467956732` log unavailable — substituted next completed failure `28913835237`. | Retries still mask a small amount of instability; hard fails dominate redness, not flake. |
+| Heal success rate | **2 / 2** clean; **masked-regression = 0** | Heal PRs [#9](https://github.com/RenaSh-hub/AI_Course/pull/9), [#10](https://github.com/RenaSh-hub/AI_Course/pull/10): POM-only diffs under `pages/`; no assertion edits in specs. | Self-heal path stays healthy when used; backlog automation correctly did **not** invoke self-heal. |
+| Generation-gate pass rate | **0 / 5 (0%)** on first PR check | Generated/coverage PRs [#5](https://github.com/RenaSh-hub/AI_Course/pull/5)–[#8](https://github.com/RenaSh-hub/AI_Course/pull/8), [#11](https://github.com/RenaSh-hub/AI_Course/pull/11): required check `Run Playwright tests` was **FAILURE** on first conclusion. Gate = green first check + conventions + maps-to-AC. | Historical generation PRs still fail the first-CI gate; DS-3 this session was green locally with `test.fail` documenting known duplicate bugs (pending first CI on the new DRAFT PR). |
+| Ask-vs-guess | **Ask = 0 · Guess = 0** | This backlog session: queue/AC from Jira REST; locators/error oracle from existing POM (`duplicateNameError`); known duplicate bug from prior commits + pom-conventions demo guardrails — no invented paths/messages. | Ask-first held for this ticket; keep logging per session so the metric stays measurable. |
 
 ### Flake detail (supporting)
 
-Runs with `flaky > 0` in the sample: `29065727582` (1), `29065535531` (4), `29065534021` (3), `28913835237` (1), `28913799214` (2). Persistent hard fails (still red after retry) cluster on duplicate-name feedback (`ds2` TC-011, `ds3` TC-005/008/009/012) — product/assert gaps, not flake.
+| Run id | Passed | Failed | Flaky |
+|--------|--------|--------|-------|
+| 29462776441 | 130 | 5 | 0 |
+| 29460849658 | 136 | 5 | 0 |
+| 29066219456 | 130 | 5 | 0 |
+| 29065727582 | 129 | 5 | 1 |
+| 29065597494 | 124 | 8 | 1 |
+| 29065535531 | 127 | 4 | 4 |
+| 29065534021 | 126 | 6 | 3 |
+| 28981810541 | 130 | 5 | 0 |
+| 28913844705 | 129 | 6 | 0 |
+| 28913835237 | 112 | 6 | 1 |
+
+Persistent hard fails cluster on duplicate-name feedback (`ds2` / `ds3` / DS-131) — product gaps documented with `test.fail` on DS-3 this run, not healed.
 
 ### Heal detail (supporting)
 
@@ -23,13 +37,13 @@ Runs with `flaky > 0` in the sample: `29065727582` (1), `29065535531` (4), `2906
 
 ## Top reliability risk
 
-**Generated and mainline CI stay red on first run**, dominated by duplicate-name / validation expectations that fail after retry — so flake rate looks low while the suite still cannot gate PRs.
+**Mainline and generation PRs stay red on first CI** because duplicate-name uniqueness is not enforced in the app; without `test.fail` (or filed bugs), those scenarios burn the generation gate.
 
 ## Next action
 
-1. File or refresh Jira bugs for the recurring duplicate-name failures; keep them out of “heal.”  
-2. Do not merge generation PRs until the first CI check is green (enforce generation-gate in the orchestrator Done checklist).  
-3. Start a one-line **Ask vs guess** tally in each orchestration session (append to this file or the PR body) so the next eval is measurable.
+1. Human-approve filing Jira bugs for create-time duplicate-name gaps (DS-3 TC-005/008/009/012) — draft details in the DS-3 DRAFT PR; do not heal.  
+2. Treat the new DS-3 DRAFT PR’s **first** `Run Playwright tests` conclusion as the generation-gate sample for the next eval.  
+3. Keep a one-line Ask vs guess tally in each orchestration session (this run: Ask 0 · Guess 0).
 
 ---
 
